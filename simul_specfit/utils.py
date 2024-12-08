@@ -13,12 +13,8 @@ import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 
 # Spectra class
+from simul_specfit import defaults
 from simul_specfit.spectra import Spectra, Spectrum
-
-# Hard coded for now
-LINEDETECT = 1_000 * (u.km / u.s)
-LINEPAD = 4_000 * (u.km / u.s)
-CONTINUUM = 10_000 * (u.km / u.s)
 
 
 def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
@@ -88,16 +84,16 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
 
 
 def restrictConfig(
-    config: list, spectra: Spectra, linepad: u.Quantity = LINEDETECT
+    config: dict, spectra: Spectra, linedet: u.Quantity = defaults.LINEDETECT
 ) -> list:
     """
     Restrict the configuration to only include lines that are covered by the spectra
 
     Parameters
     ----------
-    config : list
+    config : dict
         Configuration of emission lines
-    linepad : u.Quantity, optional
+    linedet : u.Quantity, optional
         Padding around the lines necessary to cover the line
         In velocity space
 
@@ -111,7 +107,7 @@ def restrictConfig(
     config = copy.deepcopy(config)
 
     # Effective resolution
-    lineres = (linepad / consts.c).to(u.dimensionless_unscaled).value
+    lineres = (linedet / consts.c).to(u.dimensionless_unscaled).value
 
     # Loop over config
     new_groups = []
@@ -158,8 +154,8 @@ def restrictConfig(
 def linesFluxesGuess(
     config: list,
     spectra: Spectra,
-    inner: u.Quantity = LINEPAD,
-    outer: u.Quantity = CONTINUUM,
+    inner: u.Quantity = defaults.LINEPAD,
+    outer: u.Quantity = defaults.CONTINUUM,
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
     """
     Guess the line fluxes for a given configuration
@@ -214,6 +210,7 @@ def linesFluxesGuess(
     )
 
     return centers, guesses
+
 
 # Line Flux Guess
 def lineFluxGuess(
@@ -282,7 +279,7 @@ def lineFluxGuess(
 
 
 def computeContinuumRegions(
-    config: list, spectra: Spectra, pad: u.Quantity = CONTINUUM
+    config: list, spectra: Spectra, pad: u.Quantity = defaults.CONTINUUM
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute the continuum regions from the configuration
@@ -333,10 +330,10 @@ def computeContinuumRegions(
 
 
 def continuumHeightGuesses(
-    continuum_regions: list,
+    continuum_regions: jnp.ndarray,
     config: list,
     spectra: Spectra,
-    linepad: u.Quantity = LINEPAD,
+    linepad: u.Quantity = defaults.LINEPAD,
     sigma: float = 0,
 ) -> jnp.ndarray:
     """
@@ -351,7 +348,7 @@ def continuumHeightGuesses(
     config : dict
         Configuration of emission lines
     linepad : u.Quantity, optional
-        Padding around the lines necessary to cover the line
+        Padding to mask line
     sigma : float, optional
 
 
@@ -379,10 +376,10 @@ def continuumHeightGuesses(
 
 # Continuum Height Guess
 def continuumHeightGuess(
-    config: list,
-    continuum_region: list,
+    config: dict,
+    continuum_region: jnp.ndarray,
     spectrum: Spectrum,
-    velpad: u.Quantity,
+    linepad: u.Quantity,
     sigma: float,
 ) -> jnp.ndarray:
     """
@@ -390,12 +387,12 @@ def continuumHeightGuess(
 
     Parameters
     ----------
-    continuum_region : list
+    continuum_region : jnp.ndarray
         Boundary of the continuum region
     config : dict
         Configuration of emission lines
-    velpad : u.Quantity
-        Padding around the lines
+    linepad : u.Quantity
+        Padding to mask line
     sigma : float
         Upper bound for median calculation
 
@@ -405,32 +402,8 @@ def continuumHeightGuess(
         Continuum Height Estimate
     """
 
-    # Grow by redshift
-    opz = 1 + spectrum.redshift_initial
-    continuum_region = continuum_region * opz
-    pad = (velpad / consts.c).to(u.dimensionless_unscaled).value
-
-    # Extract the region
-    low, high = continuum_region
-    mask = jnp.logical_and(low < spectrum.wave, spectrum.wave < high)
-
-    # Mask each line
-    λ_unit = u.Unit(config['Unit'])
-    for group in config['Groups']:
-        for species in group['Species']:
-            for line in species['Lines']:
-                # Compute the line wavelength
-                linewav = (line['Wavelength'] * λ_unit).to(spectrum.λ_unit).value * opz
-
-                # Get the effective padding
-                linepad = linewav * pad
-
-                # Compute the boundaries
-                low, high = linewav - linepad, linewav + linepad
-
-                # Mask the line
-                linemask = jnp.logical_and(low < spectrum.wave, spectrum.wave < high)
-                mask = jnp.logical_and(mask, jnp.invert(linemask))
+    # Mask the lines
+    mask = spectrum.maskLines(config, continuum_region, linepad)
 
     # If no coverage, return -∞
     if mask.sum() == 0:
