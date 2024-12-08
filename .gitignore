@@ -1,0 +1,6 @@
+# Ignore RUBIES directory
+RUBIES
+
+# pixi environments
+.pixi
+*.egg-info

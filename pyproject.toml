@@ -1,0 +1,36 @@
+[project]
+authors = [{name = "TheSkyentist", email = "raphael.hviding@gmail.com"}]
+description = "Add a short description here"
+name = "simul-specfit"
+requires-python = ">= 3.11"
+version = "0.1.0"
+dependencies = [ "jaxns>=2.6.6,<3", "tensorflow-probability>=0.25.0,<0.26", "astropy>=7.0.0,<8", "matplotlib>=3.9.3,<4", "jax>=0.4.36,<0.5", "numpyro>=0.16.1,<0.17", "graphviz>=0.20.3,<0.21", "requests>=2.32.3,<3"]
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["simul_specfit"]
+
+[tool.pixi.project]
+name = "RUBIES-BL"
+channels = ["conda-forge", "bioconda"]
+platforms = ["osx-arm64", "linux-64"]
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+cmake = ">=3.31.2,<4"
+python = ">=3.12.8,<3.14"
+ipython = ">=8.30.0,<9"
+graphviz = ">=12.0.0,<13"
+
+[tool.pixi.pypi-dependencies]
+simul-specfit = {path = ".", editable = true}
+
+[tool.pixi.feature.snakemake.dependencies]
+snakemake = {version = ">=8.25.1,<9", channel = "bioconda"}
+
+[tool.pixi.environments]
+snakemake = {features = ["snakemake"]}
