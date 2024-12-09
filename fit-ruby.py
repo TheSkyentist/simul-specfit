@@ -35,6 +35,8 @@ def main():
     # Process
     if len(rows) > 0:
         process(rows)
+    else:
+        raise ValueError('No rows found')
 
 def process(rows):
     # Get MCMC

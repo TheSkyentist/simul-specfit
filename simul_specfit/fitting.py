@@ -61,7 +61,6 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
         raise ValueError('No Valid Data')
 
     # Model Args
-    return
     model_args = (spectra, Z, Σ, F, line_centers, line_guesses, cont_regs, cont_guesses)
 
     # MCMC
