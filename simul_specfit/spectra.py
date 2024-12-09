@@ -176,7 +176,7 @@ class RubiesSpectra(Spectra):
 
         # If z isn't -1 else use fitz
         if bestrow['z'] == -1:
-            redshift_initial = bestrow['fitz']
+            redshift_initial = bestrow['zfit']
         else:
             redshift_initial = bestrow['z']
 
