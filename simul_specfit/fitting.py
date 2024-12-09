@@ -59,6 +59,9 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     mcmc.run(rng, *model_args)
     samples = mcmc.get_samples()
 
+    # Plot results
+    plotResults('RUBIES/Plots', cont_regs, spectra, samples, rows)
+    
     # Correct sample units
     samples['f_all'] = samples['f_all'] * 1e4  # 1e-20 * u.erg / u.cm**2 / u.s
     samples['ew_all'] = samples['ew_all'] * 1e4 # u.AA
@@ -87,6 +90,3 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     out.write(
         f'RUBIES/Results/{rows[0]['root']}-{rows[0]['srcid']}_fit.fits', overwrite=True
     )
-
-    # Plot results
-    plotResults('RUBIES/Plots', cont_regs, spectra, samples, rows)

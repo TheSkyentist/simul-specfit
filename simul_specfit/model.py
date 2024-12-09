@@ -84,16 +84,17 @@ def multiSpecModel(
     with plate(f'Nz = {Nz}', Nz):
         # Sample redshifts
         redshift = sample('z', priors.redshift_prior(spectra.redshift_initial))
-        centers = line_centers * (1 + redshift @ Z)
 
-        # Keep track of redshifts
-        determ('z_all', centers)
+        # Broadcast redshifts and compute centers
+        centers = line_centers * determ('z_all', (1 + redshift @ Z))
 
     # Plate for widths
     Nσ = Σ.shape[0]  # Number of independent widths
     with plate(f'Nσ = {Nσ}', Nσ):
         # Sample widths
-        widths = sample('σ', priors.sigma_prior()) 
+        widths = sample('σ', priors.sigma_prior())
+
+        # Broadcast widths and compute in wavelength units
         widths = centers * determ('σ_all', widths @ Σ) / C
 
     # Plate for fluxes
@@ -101,10 +102,9 @@ def multiSpecModel(
     with plate(f'Nf = {Nf}', Nf):
         # Sample fluxes
         fluxes = sample('f', priors.flux_prior(F @ line_guesses))
-        fluxes = fluxes @ F
 
-        # Keep track of fluxes
-        determ('f_all', fluxes)
+        # Broadcast fluxes
+        fluxes = determ('f_all', fluxes @ F)
 
     # Compute equivalent widths
     linecont = optimized.linearContinua(

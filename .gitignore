@@ -1,6 +1,9 @@
 # Ignore RUBIES directory
 RUBIES
 
+# Ignore pycache
+__pycache__
+
 # pixi environments
 .pixi
 *.egg-info

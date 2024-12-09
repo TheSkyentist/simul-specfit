@@ -32,12 +32,14 @@ def main():
         good = np.logical_and(targets['srcid'] == u['srcid'], targets['root'] == u['root'])
 
         # Get the rows
-        rows = targets[good]
-        allrows.append(rows)
+        goodrows = targets[good]
+        allrows.append(goodrows)
 
     # Multiprocess 
-    with Pool(100) as pool:
-        pool.map(process, allrows)
+    for rows in allrows[0:10]:
+        process(rows)
+    # with Pool(10) as pool:
+    #     pool.map(process, allrows)
 
 def process(rows):
 
@@ -45,7 +47,7 @@ def process(rows):
     try:
         RubiesMCMCFit(config, rows)
     except Exception as e:
-        print(rows,e)
+        print(rows[0]['root','srcid'],e)
 
 if __name__ == '__main__':
     main()
