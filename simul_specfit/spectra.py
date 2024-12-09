@@ -176,9 +176,9 @@ class RubiesSpectra(Spectra):
 
         # If z isn't -1 else use fitz
         if bestrow['z'] == -1:
-            redshift_initial = bestrow['zfit']
+            redshift_initial = bestrow['zfit'][0]
         else:
-            redshift_initial = bestrow['z']
+            redshift_initial = bestrow['z'][0]
 
         # Compute the spectrum files
         spectrum_files = [path.join(spectra_directory, row['file']) for row in rows]
