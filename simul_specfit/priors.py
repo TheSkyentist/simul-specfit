@@ -106,7 +106,9 @@ def height_prior(height_guess: float) -> dist.Distribution:
         Prior distribution for the height of the continuum
     """
 
-    return dist.Uniform(low=-height_guess, high=2 * height_guess)
+    low = jnp.where(height_guess < 0, 2 * height_guess, -height_guess)
+    high = jnp.where(height_guess < 0, -2 * height_guess, 2 * height_guess)
+    return dist.Uniform(low=low, high=high)
 
 
 def lsf_scale_prior(

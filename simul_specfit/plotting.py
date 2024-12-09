@@ -1,4 +1,6 @@
-"""Plotting functions for the results of the sampling."""
+"""
+Plotting functions for the results of the sampling
+"""
 
 # Standard library
 import os
@@ -9,7 +11,8 @@ from matplotlib import pyplot
 # Astropy packages
 from astropy.table import Table
 
-# JAX packages
+# Numerical packages
+import numpy as np
 from jax import numpy as jnp
 
 # Simul-SpecFit
@@ -44,6 +47,12 @@ def plotResults(
         Nspec, Nregs, figsize=(7.5 * Nregs, 6 * Nspec), sharex='col', sharey='row'
     )
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    # Ensure axes is always a 2D array
+    if Nspec == 1 and Nregs == 1:
+        axes = np.array([[axes]])  # Convert single Axes object to a 2D array
+    elif Nspec == 1 or Nregs == 1:
+        axes = np.atleast_2d(axes).reshape(Nspec, Nregs)  # Convert 1D array to 2D array
 
     # Plot the spectra
     for i, spectrum in enumerate(spectra.spectra):
@@ -108,7 +117,7 @@ def plotResults(
     fig.text(
         0.5,
         0.97,
-        f'{rows[0]['srcid']} ({rows[0]['root']}): $z = {spectrum.redshift_initial}$',
+        f"{rows[0]['srcid']} ({rows[0]['root']}): $z = {spectrum.redshift_initial:.3f}$",
         ha='center',
         va='center',
         fontsize='large',

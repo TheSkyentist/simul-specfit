@@ -1,4 +1,6 @@
-"""Fitting functions for spectral data."""
+"""
+Fitting functions for spectral data
+"""
 
 # Astropy packages
 import astropy.units as u
@@ -40,7 +42,11 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     # Restrict config to what we have coverage of
     config = utils.restrictConfig(config, spectra)
 
-    # Get what we need for fitting
+    # If the config is empty, skip
+    if len(config['Groups']) == 0:
+        raise ValueError('No Line Coverage')
+
+    # Get whacpft we need for fitting
     Z, Σ, F = utils.configToMatrices(config)
     line_centers, line_guesses = utils.linesFluxesGuess(config, spectra)
 
@@ -50,24 +56,32 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     # Restrict spectra to continuum regions and rescale errorbars in each region
     spectra.restrictAndRescale(config, cont_regs)
 
-    # Render model
+    # Skip if no data
+    if len(spectra.spectra) == 0:
+        raise ValueError('No Valid Data')
+
+    # Model Args
+    return
     model_args = (spectra, Z, Σ, F, line_centers, line_guesses, cont_regs, cont_guesses)
 
     # MCMC
     rng = random.PRNGKey(0)
-    mcmc = infer.MCMC(infer.NUTS(model), num_samples=1000, num_warmup=1000)
+    kernel = infer.NUTS(model)
+    mcmc = infer.MCMC(kernel, num_samples=1000, num_warmup=1000)
     mcmc.run(rng, *model_args)
     samples = mcmc.get_samples()
 
     # Plot results
     plotResults('RUBIES/Plots', cont_regs, spectra, samples, rows)
-    
+
     # Correct sample units
-    samples['f_all'] = samples['f_all'] * 1e4  # 1e-20 * u.erg / u.cm**2 / u.s
-    samples['ew_all'] = samples['ew_all'] * 1e4 # u.AA
+    samples['f_all'] = samples['f_all'] * (spectra.fλ_unit * spectra.λ_unit).to(
+        u.Unit(1e-20 * u.erg / (u.cm * u.cm * u.s))
+    )
+    samples['ew_all'] = samples['ew_all'] * spectra.λ_unit.to(u.AA)
 
     # Create outputs
-    colnames = ['PRISM_flux', 'PRISM_offset']
+    colnames = [n for n in ['PRISM_flux', 'PRISM_offset'] if n in samples.keys()]
     out = Table([samples[name] for name in colnames], names=colnames)
 
     # Get names of the lines
@@ -80,7 +94,12 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     for sampname, colname, unit in zip(
         ['z', 'f', 'σ', 'ew'],
         ['redshift', 'flux', 'width', 'ew'],
-        [u.dimensionless_unscaled, u.Unit(1e-20 * u.erg / u.cm**2 / u.s), u.km / u.s, u.AA],
+        [
+            u.dimensionless_unscaled,
+            u.Unit(1e-20 * u.erg / u.cm**2 / u.s),
+            u.km / u.s,
+            u.AA,
+        ],
     ):
         data = np.array(samples[f'{sampname}_all'].T.tolist()) * unit
         out_part = Table(data.T, names=[f'{line}_{colname}' for line in line_names])

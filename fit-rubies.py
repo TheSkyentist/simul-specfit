@@ -1,6 +1,7 @@
 # Import packages
 import json
-from multiprocessing import Pool
+import argparse
+from multiprocessing import Pool, cpu_count
 
 # Numpy packages
 import numpy as np
@@ -20,6 +21,11 @@ with open('config.json', 'r') as f:
 
 def main():
 
+    # Parse arguements
+    parser = argparse.ArgumentParser(description='Fit Rubies')
+    parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=cpu_count())
+    args = parser.parse_args()
+
     # Load targets
     targets = Table.read('RUBIES/Targets/targets.fits')
 
@@ -36,10 +42,9 @@ def main():
         allrows.append(goodrows)
 
     # Multiprocess 
-    for rows in allrows[0:10]:
-        process(rows)
-    # with Pool(10) as pool:
-    #     pool.map(process, allrows)
+    with Pool(args.ncpu) as pool:
+        pool.map(process, allrows)
+
 
 def process(rows):
 

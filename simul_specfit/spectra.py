@@ -11,7 +11,7 @@ from astropy.table import Table
 from astropy import units as u, constants as consts
 
 # Numerical packages
-from jax import numpy as jnp
+import numpy as np
 
 # Calibration
 from simul_specfit import calibration, defaults
@@ -82,6 +82,10 @@ class Spectra:
         # Loop over the spectra
         for spectrum in self.spectra:
             spectrum.restrict(continuum_regions)
+
+        # Remove empty spectra
+        self.spectra = [spectrum for spectrum in self.spectra if len(spectrum.wave) > 0]
+        self.names = [spectrum.name for spectrum in self.spectra]
 
     def rescale(
         self, config: dict, continuum_regions: list, linepad: u.Quantity
@@ -192,6 +196,32 @@ class RubiesSpectra(Spectra):
             fλ_unit=fλ_unit,
         )
 
+    def rescale(
+        self, config: dict, continuum_regions: list, linepad: u.Quantity
+    ) -> None:
+        """
+        Rescale the errorbars in each region
+
+        Parameters
+        ----------
+        config : dict
+            Configuration dictionary
+        continuum_regions : list
+            List of continuum regions
+        linepad : u.Quantity
+            Padding to mask emission lines
+
+        Returns
+        -------
+        None
+        """
+
+        super().rescale(config, continuum_regions, linepad)
+
+        # If no spectra are fixed, fix the first one
+        if not any([spectrum.fixed for spectrum in self.spectra]):
+            self.spectra[0].fixed = True
+        self.fixed = [spectrum.fixed for spectrum in self.spectra]
 
 # Spectrum class
 class Spectrum:
@@ -202,11 +232,11 @@ class Spectrum:
     def __init__(
         self,
         name: str,
-        low: jnp.ndarray,
-        wave: jnp.ndarray,
-        high: jnp.ndarray,
-        flux: jnp.ndarray,
-        err: jnp.ndarray,
+        low: np.ndarray,
+        wave: np.ndarray,
+        high: np.ndarray,
+        flux: np.ndarray,
+        err: np.ndarray,
         redshift_initial: float,
         λ_unit: u.Unit,
         fλ_unit: u.Unit,
@@ -218,15 +248,15 @@ class Spectrum:
         ----------
         name : str
             Name of the spectrum
-        low : jnp.ndarray
+        low : np.ndarray
             Low edge of the bins
-        wave : jnp.ndarray
+        wave : np.ndarray
             Central wavelength of the bins
-        high : jnp.ndarray
+        high : np.ndarray
             High edge of the bins
-        flux : jnp.ndarray
+        flux : np.ndarray
             Observed flux values
-        err : jnp.ndarray
+        err : np.ndarray
             Error in the flux values
         redshift_initial : float
             Initial redshift
@@ -251,7 +281,7 @@ class Spectrum:
         self.fλ_unit = fλ_unit
 
         # Mask NaN values and store
-        mask = jnp.invert(jnp.isnan(err))
+        mask = np.invert(np.isnan(err))
         for key, array in zip(
             ['wave', 'low', 'high', 'flux', 'err'],
             [wave, low, high, flux, err],
@@ -266,7 +296,7 @@ class Spectrum:
         return (getattr(self, key) for key in ['low', 'wave', 'high', 'flux', 'err'])
 
     # Calculate if range is covered
-    def coverage(self, low: float, high: float, partial: bool = True) -> jnp.ndarray:
+    def coverage(self, low: float, high: float, partial: bool = True) -> np.ndarray:
         """
         Check if a given range is covered by the spectrum
 
@@ -281,15 +311,15 @@ class Spectrum:
 
         Returns
         -------
-        jnp.ndarray
+        np.ndarray
            Boolean array of spectral coverage
         """
 
         # Check if the range is covered
         if partial:
-            return jnp.logical_and(low < self.high, self.low < high)
+            return np.logical_and(low < self.high, self.low < high)
         else:
-            return jnp.logical_and(low <= self.low, self.high <= high)
+            return np.logical_and(low <= self.low, self.high <= high)
 
     # Restrict to continuum regions
     def restrict(self, continuum_regions: list) -> None:
@@ -308,8 +338,8 @@ class Spectrum:
 
         # Compute the mask
         opz = 1 + self.redshift_initial
-        mask = jnp.logical_or.reduce(
-            jnp.array(
+        mask = np.logical_or.reduce(
+            np.array(
                 [
                     self.coverage(region[0] * opz, region[1] * opz, partial=False)
                     for region in continuum_regions
@@ -325,15 +355,15 @@ class Spectrum:
     def maskLines(
         self,
         config: list,
-        continuum_region: jnp.ndarray,
+        continuum_region: np.ndarray,
         linepad: u.Quantity,
-    ) -> jnp.ndarray:
+    ) -> np.ndarray:
         """
         Mask the lines in the continuum region
 
         Parameters
         ----------
-        continuum_region : jnp.ndarray
+        continuum_region : np.ndarray
             Boundary of the continuum region
         config : dict
             Configuration of emission lines
@@ -344,7 +374,7 @@ class Spectrum:
 
         Returns
         -------
-        jnp.ndarray
+        np.ndarray
             Masked region
         """
 
@@ -355,7 +385,7 @@ class Spectrum:
 
         # Extract the region
         low, high = continuum_region
-        mask = jnp.logical_and(low < self.wave, self.wave < high)
+        mask = np.logical_and(low < self.wave, self.wave < high)
 
         # Mask each line
         λ_unit = u.Unit(config['Unit'])
@@ -372,20 +402,20 @@ class Spectrum:
                     low, high = linewav - linepad, linewav + linepad
 
                     # Mask the line
-                    linemask = jnp.logical_and(low < self.wave, self.wave < high)
-                    mask = jnp.logical_and(mask, jnp.invert(linemask))
+                    linemask = np.logical_and(low < self.wave, self.wave < high)
+                    mask = np.logical_and(mask, np.invert(linemask))
 
         return mask
 
     # Rescale errorbars based on linear continuum
-    def scaleErrorbars(self, region: jnp.ndarray) -> float:
+    def scaleErrorbars(self, region: np.ndarray) -> float:
         """
         Rescale errorbars in a region assuming a linear continuum
         Do a least squares fit to the region and scale the errorbars to have unit variance
 
         Parameters
         ----------
-        region : jnp.ndarray
+        region : np.ndarray
             Boolean array defining the region of interest
 
         Returns
@@ -398,17 +428,17 @@ class Spectrum:
 
         # Compute least squares fit
         N = region.sum()
-        X = jnp.vstack([self.wave[region], jnp.ones(N)]).T
-        W = jnp.diag(1 / jnp.square(self.err[region]))
-        y = jnp.atleast_2d(self.flux[region]).T
-        β = jnp.linalg.inv(X.T @ W @ X) @ X.T @ W @ y
+        X = np.vstack([self.wave[region], np.ones(N)]).T
+        W = np.diag(1 / np.square(self.err[region]))
+        y = np.atleast_2d(self.flux[region]).T
+        β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ y
 
         # Compute χ²/ν
         resid = X @ β - y
         χ2_ν = (resid.T @ W @ resid)[0][0] / (N - β.size)
 
         # Return scale that makes residuals have unit variance
-        return jnp.sqrt(χ2_ν)
+        return np.sqrt(χ2_ν)
 
     def rescale(
         self, config: dict, continuum_regions: list, linepad: u.Quantity
@@ -431,17 +461,24 @@ class Spectrum:
         """
 
         # Loop over the continuum regions
-        newerr = jnp.zeros_like(self.err)
+        newerr = np.zeros_like(self.err)
         for region in continuum_regions:
-            # Compute the mask
+            # Compute the masks
             opz = 1 + self.redshift_initial
-            mask = self.coverage(region[0] * opz, region[1] * opz, partial=False)
+            regmask = self.coverage(region[0] * opz, region[1] * opz, partial=False)
+            linemask = self.maskLines(config, region, linepad)
+
+            # If not enough data, don't change errors
+            # Need at least three points for reduced χ² of a line
+            if np.sum(linemask) <= 2:
+                newerr = np.where(regmask, self.err, newerr)
+                continue
 
             # Scale the errorbars
-            scale = self.scaleErrorbars(self.maskLines(config, region, linepad))
+            scale = self.scaleErrorbars(linemask)
 
             # Apply the scaling
-            newerr = jnp.where(mask, self.err * scale, newerr)
+            newerr = np.where(regmask, self.err * scale, newerr)
 
         # Store the new errorbars
         self.err = newerr
@@ -499,16 +536,14 @@ class RubiesSpectrum(Spectrum):
 
         # Unpack relevant columns, convert
         wave = spec['wave'].to(λ_unit)
-        flux = spec['flux'].to(fλ_unit, equivalencies=u.spectral_density(wave))
-        err = spec['err'].to(fλ_unit, equivalencies=u.spectral_density(wave))
-
-        # Convert to JAX arrays
-        wave, flux, err = jnp.array(wave), jnp.array(flux), jnp.array(err)
+        flux = spec['flux'].to(fλ_unit, equivalencies=u.spectral_density(wave)).value
+        err = spec['err'].to(fλ_unit, equivalencies=u.spectral_density(wave)).value
+        wave = wave.value
 
         # Calculate bin edges
-        δλ = jnp.diff(wave) / 2
+        δλ = np.diff(wave) / 2
         mid = wave[:-1] + δλ
-        edges = jnp.concat([wave[0:1] - δλ[0:1], mid, wave[-2:-1] + δλ[-2:-1]])
+        edges = np.concatenate([wave[0:1] - δλ[0:1], mid, wave[-2:-1] + δλ[-2:-1]])
         low = edges[:-1]
         high = edges[1:]
 

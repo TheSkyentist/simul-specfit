@@ -1,4 +1,6 @@
-"""Utility functions for the simulation and fitting of spectra"""
+"""
+Utility functions for the simulation and fitting of spectra
+"""
 
 # Import packages
 import copy

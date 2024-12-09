@@ -1,4 +1,6 @@
-"""Multi-Spectrum Model"""
+"""
+Multi-Spectrum Model
+"""
 
 # Standard Imports
 from typing import Final
@@ -115,7 +117,7 @@ def multiSpecModel(
     # Loop over spectra
     for spectrum in spectra.spectra:
         # Get the spectrum
-        low, wave, high, flux, err = spectrum()
+        low, wave, high, flux, err = (jnp.array(x) for x in spectrum())
 
         # Get the calibration
         lsf_scale, pixel_offset, flux_scale = calib(spectrum.name)
