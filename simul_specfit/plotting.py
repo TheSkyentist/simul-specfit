@@ -43,8 +43,9 @@ def plotResults(
     Nspec, Nregs = len(spectra.spectra), len(cont_regs)
 
     # Plotting
+    figsize = (15, 12) # (7.5 * Nregs, 6 * Nspec)
     fig, axes = pyplot.subplots(
-        Nspec, Nregs, figsize=(7.5 * Nregs, 6 * Nspec), sharex='col', sharey='row'
+        Nspec, Nregs, figsize=figsize, sharex='col', sharey='row'
     )
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
 

@@ -169,8 +169,16 @@ class RubiesSpectra(Spectra):
         None
         """
 
-        # Compute iniital redshift
-        redshift_initial = sum(rows['z']) / len(rows)
+        # Get best initial redshift
+        bestrow = rows[rows['grade'] == np.max(rows['grade'])]
+        if len(bestrow) > 1:
+            bestrow = bestrow[bestrow['grating'] == 'G395M']
+
+        # If z isn't -1 else use fitz
+        if bestrow['z'] == -1:
+            redshift_initial = bestrow['fitz']
+        else:
+            redshift_initial = bestrow['z']
 
         # Compute the spectrum files
         spectrum_files = [path.join(spectra_directory, row['file']) for row in rows]
@@ -222,6 +230,7 @@ class RubiesSpectra(Spectra):
         if not any([spectrum.fixed for spectrum in self.spectra]):
             self.spectra[0].fixed = True
         self.fixed = [spectrum.fixed for spectrum in self.spectra]
+
 
 # Spectrum class
 class Spectrum:

@@ -151,3 +151,105 @@ def multiSpecModel(
 
         # Compute likelihood
         sample(f'{spectrum.name}', dist.Normal(model, err), obs=flux)
+
+
+# Define the model
+def plotMultiSpecModel(
+    spectra: Spectra,
+    Z: BCOO,
+    Σ: BCOO,
+    F: BCOO,
+    line_centers: jnp.ndarray,
+    line_guesses: jnp.ndarray,
+    cont_regs: jnp.ndarray,
+    cont_guesses: jnp.ndarray,
+) -> None:
+    """
+    Multi-Spectrum Model
+
+    Parameters
+    ----------
+    spectra : Spectra
+        Spectra to fit
+    Z : BCOO
+        Redshift matrix
+    Σ : BCOO
+        Width matrix
+    F : BCOO
+        Flux matrix
+    line_centers : jnp.ndarray
+        Line centers
+    line_guesses : jnp.ndarray
+        Line guesses
+    cont_regs : jnp.ndarray
+        Continuum regions
+    cont_guesses : jnp.ndarray
+        Continuum guesses
+
+    Returns
+    -------
+    None
+    """
+
+    # Redshift the continuum regions
+    continuum_regions = cont_regs * (1 + spectra.redshift_initial)
+
+    # Plate over the continua
+    Nc = len(continuum_regions)  # Number of continuum regions
+    with plate(f'Continua (N = {Nc})', Nc):
+        # Continuum Parameters
+        angles = sample('θ', priors.angle_prior())
+        offsets = sample('Fλ', priors.height_prior(cont_guesses))
+        cont = determ('Linear Continuum', angles + offsets).mean()
+
+    cont = determ('Total Continuum', cont)
+
+    # Plate for redshifts
+    Nz = Z.shape[0]  # Number of independent redshifts
+    with plate(f'Redshifts (N = {Nz})', Nz):
+        # Sample redshifts
+        redshift = sample('z', priors.redshift_prior(spectra.redshift_initial))
+        redshift = redshift @ Z
+
+    # Plate for widths
+    Nσ = Σ.shape[0]  # Number of independent widths
+    with plate(f'Dispersions (N = {Nσ})', Nσ):
+        # Sample widths
+        widths = sample('σ', priors.sigma_prior())
+        widths = widths @ Σ
+
+    # Plate for fluxes
+    Nf = F.shape[0]  # Number of independent fluxes
+    with plate(f'Fluxes (N = {Nf})', Nf):
+        # Sample fluxes
+        fluxes = sample('f', priors.flux_prior(F @ line_guesses))
+        fluxes = fluxes @ F
+
+    # Plate over the lines
+    Nl = len(line_centers)  # Number of lines
+    with plate(f'Lines (N = {Nl})', Nl):
+        lines = determ('Lines', redshift + widths + fluxes).mean()
+
+        determ('Equivalent Width', fluxes + cont)
+        lsf_scale = sample('LSF Scale', priors.lsf_scale_prior()).mean()
+
+    # Plate for spectra
+    Nspec = len(spectra.spectra)  # Number of spectra
+    with plate(f'Spectra (N = {Nspec})', Nspec, dim=-1):
+        # Get the calbrations
+        flux_scale = sample('Flux Scale', priors.flux_scale_prior()).mean()
+        pixel_offset = sample('Pixel Offsets', priors.pixel_offset_prior()).mean()
+        λ = jnp.ones(1000)  # Faux wavelength grid
+
+        with plate('λ', len(λ), dim=-2):
+            # Compute the continuum model
+            c = determ('Continuum Model', cont)
+
+            # Compute the line model
+            li = determ('Lines Model', lines + lsf_scale + pixel_offset)
+
+            # Compute the model
+            model = determ('Total Model', flux_scale + c + li)
+
+            # Compute the likelihood
+            sample('Observations', dist.Normal(model, 1), obs=1)
