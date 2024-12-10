@@ -1,5 +1,6 @@
 # Ignore RUBIES directory
-RUBIES
+RUBIES/**/*.fits
+RUBIES/**/*.pdf
 
 # Ignore pycache
 __pycache__
