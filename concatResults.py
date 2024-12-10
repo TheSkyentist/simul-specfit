@@ -31,7 +31,7 @@ for u in tqdm.tqdm(unique):
     names = ('root', 'srcid') + names
 
     # Create table
-    row = Table(np.array(row), names=names)
+    row = Table([[r] for r in row], names=names)
     rows.append(row)
 
 # Concatenate

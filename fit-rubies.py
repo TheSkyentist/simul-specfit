@@ -42,7 +42,7 @@ def main():
     targets = Table.read('RUBIES/Targets/targets.fits')
 
     # Get unique targets
-    unique_targets = np.unique(targets['root', 'srcid'][targets['srcid'] > 0])
+    unique_targets = np.unique(targets['root', 'srcid'])
 
     # Get rows
     allrows = []

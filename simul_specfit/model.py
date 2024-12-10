@@ -73,7 +73,6 @@ def multiSpecModel(
 
         # Continuum angles
         angles = sample('cont_angle', priors.angle_prior())
-        # angles = determ('cont_angle', 0)
 
         # Continuum offsets
         offsets = sample('cont_offset', priors.height_prior(cont_guesses))
@@ -86,9 +85,10 @@ def multiSpecModel(
     with plate(f'Nz = {Nz}', Nz):
         # Sample redshifts
         redshift = sample('z', priors.redshift_prior(spectra.redshift_initial))
+        oneplusz = 1 + determ('z_all', redshift @ Z)
 
         # Broadcast redshifts and compute centers
-        centers = line_centers * determ('z_all', (1 + redshift @ Z))
+        centers = line_centers * oneplusz
 
     # Plate for widths
     Nσ = Σ.shape[0]  # Number of independent widths
@@ -112,7 +112,7 @@ def multiSpecModel(
     linecont = optimized.linearContinua(
         centers, cont_centers, angles, offsets, continuum_regions
     ).sum(1)
-    determ('ew_all', fluxes / linecont)
+    determ('ew_all', fluxes / (linecont * oneplusz))
 
     # Loop over spectra
     for spectrum in spectra.spectra:
@@ -232,7 +232,7 @@ def plotMultiSpecModel(
         lines = determ('Lines', redshift + widths + fluxes).mean()
 
         determ('Equivalent Width', fluxes + cont)
-    
+
     # LSF Scale
     lsf_scale = sample('LSF Scale', priors.lsf_scale_prior()).mean()
 
