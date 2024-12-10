@@ -41,7 +41,7 @@ results['PRISM_flux_std'] = results['PRISM_flux_std'].filled(0)
 results['PRISM_offset'] = results['PRISM_offset'].filled(0)
 results['PRISM_offset_std'] = results['PRISM_offset_std'].filled(0)
 
-results.write('REH-simul.fits', overwrite=True)
+results.write('RUBIES/Results/REH-simul.fits', overwrite=True)
 
 #! /usr/bin/env python
 
