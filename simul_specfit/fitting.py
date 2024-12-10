@@ -16,7 +16,7 @@ from jax import random
 # Simul-SpecFit
 from simul_specfit import utils
 from simul_specfit.spectra import RubiesSpectra
-from simul_specfit.model import multiSpecModel as model
+from simul_specfit.model import multiSpecModel
 from simul_specfit.plotting import plotResults
 
 
@@ -63,9 +63,14 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     # Model Args
     model_args = (spectra, Z, Σ, F, line_centers, line_guesses, cont_regs, cont_guesses)
 
+    # # Plot model
+    # import numpyro
+    # from simul_specfit.model import plotMultiSpecModel
+    # numpyro.render_model(plotMultiSpecModel, model_args, filename='model.pdf')
+
     # MCMC
     rng = random.PRNGKey(0)
-    kernel = infer.NUTS(model)
+    kernel = infer.NUTS(multiSpecModel)
     mcmc = infer.MCMC(kernel, num_samples=1000, num_warmup=1000)
     mcmc.run(rng, *model_args)
     samples = mcmc.get_samples()

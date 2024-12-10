@@ -124,6 +124,7 @@ def multiSpecModel(
 
         # Apply pixel offset
         low = low + spectrum.offset(low, pixel_offset)
+        wave = wave + spectrum.offset(wave, pixel_offset)
         high = high + spectrum.offset(high, pixel_offset)
 
         # Broaden the lines
@@ -231,7 +232,9 @@ def plotMultiSpecModel(
         lines = determ('Lines', redshift + widths + fluxes).mean()
 
         determ('Equivalent Width', fluxes + cont)
-        lsf_scale = sample('LSF Scale', priors.lsf_scale_prior()).mean()
+    
+    # LSF Scale
+    lsf_scale = sample('LSF Scale', priors.lsf_scale_prior()).mean()
 
     # Plate for spectra
     Nspec = len(spectra.spectra)  # Number of spectra
@@ -243,7 +246,7 @@ def plotMultiSpecModel(
 
         with plate('λ', len(λ), dim=-2):
             # Compute the continuum model
-            c = determ('Continuum Model', cont)
+            c = determ('Continuum Model', cont + pixel_offset)
 
             # Compute the line model
             li = determ('Lines Model', lines + lsf_scale + pixel_offset)
