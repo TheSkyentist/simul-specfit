@@ -1,4 +1,11 @@
-# Import packages
+#! /usr/bin/env python
+
+"""
+Script to fit RUBIES spectra
+"""
+
+# Standard library
+import os
 import json
 import argparse
 from multiprocessing import Pool, cpu_count
@@ -25,6 +32,11 @@ def main():
     parser = argparse.ArgumentParser(description='Fit Rubies')
     parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=cpu_count())
     args = parser.parse_args()
+
+    # Ensure results/Plots directories exist
+    for d in ['RUBIES/Results', 'RUBIES/Plots']:
+        if not os.path.exists(d):
+            os.makedir(d)
 
     # Load targets
     targets = Table.read('RUBIES/Targets/targets.fits')

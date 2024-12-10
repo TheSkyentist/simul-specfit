@@ -1,4 +1,11 @@
+#! /usr/bin/env python
+
+"""
+Script to fit one set of RUBIES spectra
+"""
+
 # Import packages
+import os
 import json
 import argparse
 
@@ -14,10 +21,6 @@ from simul_specfit.fitting import RubiesMCMCFit
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-# Get testing targets
-# srcid = 154183  # 154183
-# rows = targets[targets['srcid'] == srcid]
-
 
 def main():
     # Parse arguements
@@ -25,6 +28,11 @@ def main():
     parser.add_argument('root', type=str, help='Root')
     parser.add_argument('srcid', type=int, help='Source ID')
     args = parser.parse_args()
+
+    # Ensure results/Plots directories exist
+    for d in ['RUBIES/Results', 'RUBIES/Plots']:
+        if not os.path.exists(d):
+            os.makedir(d)
 
     # Load targets
     targets = Table.read('RUBIES/Targets/targets.fits')
@@ -38,10 +46,10 @@ def main():
     else:
         raise ValueError('No rows found')
 
+
 def process(rows):
     # Get MCMC
     RubiesMCMCFit(config, rows)
-
 
 
 if __name__ == '__main__':
