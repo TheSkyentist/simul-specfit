@@ -63,11 +63,6 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     # Model Args
     model_args = (spectra, Z, Σ, F, line_centers, line_guesses, cont_regs, cont_guesses)
 
-    # # Plot model
-    # import numpyro
-    # from simul_specfit.model import plotMultiSpecModel
-    # numpyro.render_model(plotMultiSpecModel, model_args, filename='model.pdf')
-
     # MCMC
     rng = random.PRNGKey(0)
     kernel = infer.NUTS(multiSpecModel)
@@ -76,7 +71,7 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     samples = mcmc.get_samples()
 
     # Plot results
-    plotResults('RUBIES/Plots', cont_regs, spectra, samples, rows)
+    plotResults('RUBIES/Plots', config, rows, samples, model_args)
 
     # Correct sample units
     samples['f_all'] = samples['f_all'] * (spectra.fλ_unit * spectra.λ_unit).to(
@@ -85,7 +80,9 @@ def RubiesMCMCFit(config: dict, rows: Table) -> infer.MCMC:
     samples['ew_all'] = samples['ew_all'] * spectra.λ_unit.to(u.AA)
 
     # Create outputs
-    colnames = [n for n in ['PRISM_flux', 'PRISM_offset'] if n in samples.keys()]
+    colnames = [
+        n for n in ['lsf_scale', 'PRISM_flux', 'PRISM_offset'] if n in samples.keys()
+    ]
     out = Table([samples[name] for name in colnames], names=colnames)
 
     # Get names of the lines

@@ -1,0 +1,40 @@
+{
+    "Unit": "Angstrom",
+    "Groups": [
+        {
+            "Name": "Narrow",
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": [
+                {
+                    "Name": "HI",
+                    "Lines": [
+                        {"Wavelength": 6564.61, "RelStrength": null},
+                        {"Wavelength": 4862.68, "RelStrength": null}
+                    ]
+                },
+                {
+                    "Name": "[NII]",
+                    "Lines": [
+                        {"Wavelength": 6585.27, "RelStrength": 1},
+                        {"Wavelength": 6549.86, "RelStrength": 0.34}
+                    ]
+                },
+                {
+                    "Name": "[SII]",
+                    "Lines": [
+                        {"Wavelength": 6718.29, "RelStrength": null},
+                        {"Wavelength": 6732.67, "RelStrength": null}
+                    ]
+                },
+                {
+                    "Name": "[OIII]",
+                    "Lines": [
+                        {"Wavelength": 5008.24, "RelStrength": 1},
+                        {"Wavelength": 4960.295, "RelStrength": 0.35}
+                    ]
+                }
+            ]
+        }
+    ]
+}

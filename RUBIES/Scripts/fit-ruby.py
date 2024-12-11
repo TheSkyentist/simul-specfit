@@ -18,7 +18,7 @@ from astropy.table import Table
 from simul_specfit.fitting import RubiesMCMCFit
 
 # Load config from JSON file
-with open('config.json', 'r') as f:
+with open('config-narrow.json', 'r') as f:
     config = json.load(f)
 
 

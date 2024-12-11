@@ -35,14 +35,16 @@ def redshift_prior(
     return dist.Uniform(low=z0 - δz, high=z0 + δz)
 
 
-def sigma_prior(lineType: str = 'narrow') -> dist.Distribution:
+def sigma_prior(low=0, high=1000) -> dist.Distribution:
     """
     Return a uniform prior for the velocity dispersion σ
 
     Parameters
     ----------
-    linetype : str
-        Type of line to be used, narrow is assumed by default
+    low : float or jnp.ndarray, optional
+        Lower bound of the prior
+    high : float or jnp.ndarray, optional
+        Upper bound of the prior
 
     Return
     ------
@@ -50,10 +52,7 @@ def sigma_prior(lineType: str = 'narrow') -> dist.Distribution:
         Prior distribution for the velocity dispersion σ
     """
 
-    if lineType == 'narrow':
-        return dist.Uniform(low=20.0, high=1000.0)
-    elif lineType == 'broad':
-        return dist.Uniform(low=700.0, high=5000.0)
+    return dist.Uniform(low=0, high=1000.0)
 
 
 def flux_prior(flux_guess: float) -> dist.Distribution:
