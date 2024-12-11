@@ -18,6 +18,9 @@ name = "RUBIES-BL"
 channels = ["conda-forge", "bioconda"]
 platforms = ["osx-arm64", "linux-64"]
 
+[tool.pixi.activation]
+env = {"JAX_ENABLE_X64" = "1", "JAX_LOGGING_LEVEL" = "ERROR"}
+
 [tool.pixi.tasks]
 
 [tool.pixi.dependencies]

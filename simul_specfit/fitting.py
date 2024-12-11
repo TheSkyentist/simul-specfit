@@ -25,6 +25,8 @@ def RubiesMCMCFit(config, rows):
     # Get the model arguments
     config, model_args = RUBIESModelArgs(config, rows)
 
+    exit()
+
     # Fit the data
     mcmc = MCMCFit(model_args)
     samples = mcmc.get_samples()
