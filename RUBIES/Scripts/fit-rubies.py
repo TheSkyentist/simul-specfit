@@ -22,10 +22,6 @@ from simul_specfit.fitting import RubiesMCMCFit
 with open('config-narrow.json', 'r') as f:
     config = json.load(f)
 
-# Get testing targets
-# srcid = 154183  # 154183
-# rows = targets[targets['srcid'] == srcid]
-
 def main():
 
     # Parse arguements

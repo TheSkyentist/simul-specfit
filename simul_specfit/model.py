@@ -63,13 +63,13 @@ def multiSpecModel(
     """
 
     # Redshift the continuum regions
-    continuum_regions = cont_regs * (1 + spectra.redshift_initial)
+    cont_regs = cont_regs * (1 + spectra.redshift_initial)
 
     # Plate over the continua
-    Nc = len(continuum_regions)  # Number of continuum regions
+    Nc = len(cont_regs)  # Number of continuum regions
     with plate(f'Nc = {Nc}', Nc):
         # Continuum centers
-        cont_centers = determ('cont_center', continuum_regions.mean(axis=1))
+        cont_centers = determ('cont_center', cont_regs.mean(axis=1))
 
         # Continuum angles
         angles = sample('cont_angle', priors.angle_prior())
@@ -110,7 +110,7 @@ def multiSpecModel(
 
     # Compute equivalent widths
     linecont = optimized.linearContinua(
-        centers, cont_centers, angles, offsets, continuum_regions
+        centers, cont_centers, angles, offsets, cont_regs
     ).sum(1)
     determ('ew_all', fluxes / (linecont * oneplusz))
 
@@ -123,9 +123,10 @@ def multiSpecModel(
         lsf_scale, pixel_offset, flux_scale = calib(spectrum.name)
 
         # Apply pixel offset
-        low = low + spectrum.offset(low, pixel_offset)
-        wave = wave + spectrum.offset(wave, pixel_offset)
-        high = high + spectrum.offset(high, pixel_offset)
+        low = low - spectrum.offset(low, pixel_offset)
+        wave = wave - spectrum.offset(wave, pixel_offset)
+        high = high - spectrum.offset(high, pixel_offset)
+        cont_regs_shift = cont_regs - spectrum.offset(cont_regs, pixel_offset)
 
         # Broaden the lines
         lsf = spectrum.lsf(centers, lsf_scale)
@@ -141,7 +142,7 @@ def multiSpecModel(
         continuum = determ(
             f'{spectrum.name}_cont',
             optimized.linearContinua(
-                wave, cont_centers, angles, offsets, continuum_regions
+                wave, cont_centers, angles, offsets, cont_regs_shift
             ).sum(1),
         )
 
@@ -230,7 +231,6 @@ def plotMultiSpecModel(
     Nl = len(line_centers)  # Number of lines
     with plate(f'Lines (N = {Nl})', Nl):
         lines = determ('Lines', redshift + widths + fluxes).mean()
-
         determ('Equivalent Width', fluxes + cont)
 
     # LSF Scale

@@ -40,13 +40,15 @@ def downloadSpec(
 
     # Download URL
     remote = path.join(url, root, file)
-    print(f'Downloading {remote} to {file}')
     r = requests.get(remote)
     if r.status_code == 200:
         with open(file, 'wb') as f:
             f.write(r.content)
+        print(f'Downloaded {file}')
     else:
-        print(f'Error downloading {remote}')
+        print(f'Error downloading {file}')
+    
+    print()
 
 
 # Define main function

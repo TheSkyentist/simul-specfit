@@ -35,7 +35,6 @@ numpyro.render_model(
 # # Nested Sampling
 constructor_kwargs = {'num_live_points': 500, 'max_samples': 50000}
 termination_kwargs = {'dlogZ': 0.01}
-nested = NestedSampler(model)
 NS = NestedSampler(
     model=model,
     constructor_kwargs=constructor_kwargs,
