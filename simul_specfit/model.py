@@ -128,6 +128,10 @@ def multiSpecModel(
         high = high - spectrum.offset(high, pixel_offset)
         cont_regs_shift = cont_regs - spectrum.offset(cont_regs, pixel_offset)
 
+        # Compute effective redshift after shift
+        # centers_shift = centers - spectrum.offset(centers, pixel_offset)
+        # determ(f'{spectrum.name}_z_all', (centers_shift / line_centers) - 1)
+
         # Broaden the lines
         lsf = spectrum.lsf(centers, lsf_scale)
         tot_widths = jnp.sqrt(jnp.square(widths) + jnp.square(lsf))
