@@ -22,7 +22,7 @@ from simul_specfit.fitting import RubiesFit
 def main():
     # Parse arguements
     parser = argparse.ArgumentParser(description='Fit Rubies')
-    parser.add_arguement('config', type=str, help='Configuration file')
+    parser.add_argument('config', type=str, help='Configuration file')
     parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=cpu_count())
     args = parser.parse_args()
 
