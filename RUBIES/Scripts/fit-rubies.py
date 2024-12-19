@@ -16,7 +16,7 @@ import numpy as np
 # Astronomy packages
 from astropy.table import Table
 
-from simul_specfit.fitting import RubiesMCMCFit
+from simul_specfit.fitting import RubiesFit
 
 
 def main():
@@ -60,7 +60,7 @@ def main():
 def process(rows, config):
     # Get MCMC
     try:
-        RubiesMCMCFit(config, rows)
+        RubiesFit(config, rows)
     except Exception as e:
         print(rows[0]['root', 'srcid'], e)
 
