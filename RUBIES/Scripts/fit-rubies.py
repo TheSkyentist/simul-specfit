@@ -18,6 +18,8 @@ from astropy.table import Table
 
 from simul_specfit.fitting import RubiesFit
 
+import multiprocessing
+multiprocessing.set_start_method('spawn', force=True)
 
 def main():
     # Parse arguements
