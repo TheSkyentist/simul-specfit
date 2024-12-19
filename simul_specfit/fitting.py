@@ -4,10 +4,12 @@ Fitting functions for spectral data
 
 # Astropy packages
 import astropy.units as u
+from astropy.io import fits
 from astropy.table import Table, hstack
 
 # Numpyro
 from numpyro import infer
+from numpyro.handlers import trace, seed
 from numpyro.contrib.nested_sampling import NestedSampler
 
 # JAX
@@ -21,21 +23,25 @@ from simul_specfit.model import multiSpecModel
 from simul_specfit.plotting import plotResults
 
 
-def RubiesMCMCFit(config, rows):
+def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC'):
     # Get the model arguments
     config, model_args = RUBIESModelArgs(config, rows)
 
-    exit()
+    # Get the random key
+    rng_key = random.PRNGKey(0)
 
     # Fit the data
-    mcmc = MCMCFit(model_args)
-    samples = mcmc.get_samples()
+    match backend:
+        case 'MCMC':
+            samples, extras = MCMCFit(model_args, rng_key)
+        case 'NS':
+            samples, extras = NSFit(model_args, rng_key)
 
     # Plot the results
-    plotResults('RUBIES/Plots/', config, rows, samples, model_args)
+    plotResults(config, rows, model_args, samples)
 
     # Save the results
-    saveResults(config, rows, model_args, samples)
+    saveResults(config, rows, model_args, samples, extras)
 
 
 def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
@@ -55,6 +61,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
         Model arguments
     """
 
+    # Load the spectra
     spectra = RubiesSpectra(rows, 'RUBIES/Spectra')
 
     # Restrict config to what we have coverage of
@@ -64,8 +71,8 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
     if len(config['Groups']) == 0:
         raise ValueError('No Line Coverage')
 
-    # Get whacpft we need for fitting
-    Z, Σ, F = utils.configToMatrices(config)
+    # Get what we need for fitting
+    F, Z, Σs = utils.configToMatrices(config)
     line_centers, line_guesses = utils.linesFluxesGuess(config, spectra)
 
     # Get continuum regions
@@ -79,10 +86,21 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
         raise ValueError('No Valid Data')
 
     # Model Args
-    return config, (spectra, Z, Σ, F, line_centers, line_guesses, cont_regs, cont_guesses)
+    return config, (
+        spectra,
+        F,
+        Z,
+        Σs,
+        line_centers,
+        line_guesses,
+        cont_regs,
+        cont_guesses,
+    )
 
 
-def MCMCFit(model_args: tuple) -> infer.MCMC:
+def MCMCFit(
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 1000
+) -> tuple[dict, dict]:
     """
     Fit the RUBIES data with MCMC.
 
@@ -98,15 +116,25 @@ def MCMCFit(model_args: tuple) -> infer.MCMC:
     """
 
     # MCMC
-    rng = random.PRNGKey(0)
     kernel = infer.NUTS(multiSpecModel)
-    mcmc = infer.MCMC(kernel, num_samples=1000, num_warmup=1000)
-    mcmc.run(rng, *model_args)
+    mcmc = infer.MCMC(kernel, num_samples=N, num_warmup=N)
+    mcmc.run(rng_key, *model_args)
 
-    return mcmc
+    # Get the samples
+    samples = mcmc.get_samples()
+
+    # Compute the WAIC
+    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
+    logL = np.hstack([p for p in logLs.values()])  # Likelihood Matrix
+    waic = -2 * (np.log(np.exp(logL).mean(axis=0)).sum() - logL.var(axis=0).sum())
+    extras = {'WAIC': [waic]}
+
+    return samples, extras
 
 
-def NSFit(model_args: tuple):# -> NestedSampler:
+def NSFit(
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 1000
+) -> tuple[dict, dict]:
     """
     Fit the RUBIES data with Nested Sampling.
 
@@ -119,21 +147,44 @@ def NSFit(model_args: tuple):# -> NestedSampler:
     NestedSampler
     """
 
+    # Get number of variables
+    with trace() as tr:
+        with seed(multiSpecModel, rng_seed=rng_key):
+            multiSpecModel(*model_args)
+    nv = sum(
+        [
+            v['value'].size
+            for v in tr.values()
+            if v['type'] == 'sample' and not v['is_observed']
+        ]
+    )
+
     # Nested Sampling
-    rng = random.PRNGKey(0)
-    constructor_kwargs = {'num_live_points': 500, 'max_samples': 50000}
+    constructor_kwargs = {'num_live_points': 50 * (nv + 1), 'max_samples': 50000}
     termination_kwargs = {'dlogZ': 0.01}
     NS = NestedSampler(
         model=multiSpecModel,
         constructor_kwargs=constructor_kwargs,
         termination_kwargs=termination_kwargs,
     )
-    NS.run(rng, *model_args)
+    NS.run(rng_key, *model_args)
 
-    return NS
+    # Get the sample
+    samples = NS.get_samples(rng_key, N)
+
+    # Add log evidence to samples
+    extras = {
+        'log_Z': [NS._results.log_Z_mean],
+        'log_Z_err': [NS._results.log_Z_uncert],
+    }
+
+    return samples, extras
 
 
-def saveResults(config, rows, model_args, samples) -> None:
+def saveResults(config, rows, model_args, samples, extras) -> None:
+    # Get config name
+    cname = '_' + config['Name'] if config['Name'] else ''
+
     # Unpack model args
     spectra, _, _, _, _, _, _, _ = model_args
 
@@ -149,9 +200,17 @@ def saveResults(config, rows, model_args, samples) -> None:
     ]
     out = Table([samples[name] for name in colnames], names=colnames)
 
+    # Save all samples as npz
+    np.savez(
+        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_full.npz',
+        **samples,
+    )
+
     # Get names of the lines
     line_names = [
         f'{group['Name']}-{species['Name']}-{line['Wavelength']}'
+        if group['Name']
+        else f'{species['Name']}-{line['Wavelength']}'
         for group in config['Groups']
         for species in group['Species']
         for line in species['Lines']
@@ -170,7 +229,14 @@ def saveResults(config, rows, model_args, samples) -> None:
         out_part = Table(data.T, names=[f'{line}_{colname}' for line in line_names])
         out = hstack([out, out_part])
 
-    # Save the output
-    out.write(
-        f'RUBIES/Results/{rows[0]['root']}-{rows[0]['srcid']}_fit.fits', overwrite=True
+    # Create table from extras
+    extra = Table(extras)
+
+    # Create HDUList
+    hdul = fits.HDUList(
+        [fits.PrimaryHDU(), fits.BinTableHDU(out), fits.BinTableHDU(extra)]
+    )
+    hdul.writeto(
+        f'RUBIES/Results/{rows[0]['root']}-{rows[0]['srcid']}{cname}_summary.fits',
+        overwrite=True,
     )

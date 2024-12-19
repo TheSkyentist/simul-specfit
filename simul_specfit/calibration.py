@@ -16,55 +16,44 @@ from simul_specfit import priors
 # JAX packages
 from jax import jit, numpy as jnp
 
+
 # Generic Calibration
-class Calibration:
+def RubiesCalibration(names: list, fixed: list) -> None:
     """
-    Generic Calibration
+    Initialize the calibration
+
+    Parameters
+    ----------
+    spectra : Spectra
+        Spectra Object
+
+    Returns
+    -------
+    None
     """
 
-    def __init__(self, names: list, fixed: list) -> None:
-        """
-        Initialize the calibration
+    # Create Global LSF scale
+    lsf_scale = sample('lsf_scale', priors.lsf_scale_prior())
 
-        Parameters
-        ----------
-        spectra : Spectra
-            Spectra Object
+    # Empty calibration dictionary
+    calibration = {}
 
-        Returns
-        -------
-        None
-        """
+    # Iterate over spectra
+    for name, fix in zip(names, fixed):
+        if fix:
+            # If fixed, deterministic offset and scale
+            px_offset = determ(f'{name}_offset', 0)
+            flux_scale = determ(f'{name}_flux', 1)
 
-        # Create LSF scale
-        self.lsf_scale = sample('lsf_scale', priors.lsf_scale_prior())
+        else:
+            # If not fixed, sample offset and scale
+            px_offset = sample(f'{name}_offset', priors.pixel_offset_prior())
+            flux_scale = sample(f'{name}_flux', priors.flux_scale_prior())
 
-        # Create Pixel Offsets, Flux Scales
-        self.pixel_offsets, self.flux_scales = {}, {}
+        # Add to calibration dictionary
+        calibration[name] = (lsf_scale, px_offset, flux_scale)
 
-        # Iteraete over the spectra
-        for name, fix in zip(names, fixed):
-            # If fixed
-            if fix:
-                # Fixed offset
-                self.pixel_offsets[name] = determ(f'{name}_offset', 0)
-                self.flux_scales[name] = determ(f'{name}_flux', 1)
-
-            else:
-                # Sample offset
-                self.pixel_offsets[name] = sample(
-                    f'{name}_offset', priors.pixel_offset_prior()
-                )
-                self.flux_scales[name] = sample(
-                    f'{name}_flux', priors.flux_scale_prior()
-                )
-
-    def __call__(self, name: str) -> tuple[float, float, float]:
-        return (
-            self.lsf_scale,
-            self.pixel_offsets[name],
-            self.flux_scales[name],
-        )
+    return calibration
 
 
 # Interpolated lsf Curve

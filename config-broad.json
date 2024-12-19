@@ -1,4 +1,5 @@
 {
+    "Name": "broad",
     "Unit": "Angstrom",
     "Groups": [
         {
@@ -7,18 +8,18 @@
             "TieDispersion": true,
             "Species": [
                 {
-                    "Name": "HI",
-                    "AdditionalComponents": {"broad" : "Broad"},
+                    "Name": "[NII]",
                     "Lines": [
-                        {"Wavelength": 6564.61, "RelStrength": null},
-                        {"Wavelength": 4862.68, "RelStrength": null}
+                        {"Wavelength": 6585.27, "RelStrength": 2.95},
+                        {"Wavelength": 6549.86, "RelStrength": 1}
                     ]
                 },
                 {
-                    "Name": "[NII]",
+                    "Name": "HI",
+                    "AdditionalComponents": {"broad" : "Narrow"},
                     "Lines": [
-                        {"Wavelength": 6585.27, "RelStrength": 1},
-                        {"Wavelength": 6549.86, "RelStrength": 0.34}
+                        {"Wavelength": 6564.61, "RelStrength": null},
+                        {"Wavelength": 4862.68, "RelStrength": null}
                     ]
                 },
                 {
@@ -31,17 +32,11 @@
                 {
                     "Name": "[OIII]",
                     "Lines": [
-                        {"Wavelength": 5008.24, "RelStrength": 1},
-                        {"Wavelength": 4960.295, "RelStrength": 0.35}
+                        {"Wavelength": 5008.24, "RelStrength": 2.98},
+                        {"Wavelength": 4960.295, "RelStrength": 1}
                     ]
                 }
             ]
-        },
-        {
-            "Name": "Broad",
-            "TieRedshift": true,
-            "TieDispersion": true,
-            "Species": []
         }
     ]
 }

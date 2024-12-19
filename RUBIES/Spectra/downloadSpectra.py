@@ -35,7 +35,7 @@ def downloadSpec(
 
     # Check if file exists
     if path.exists(file) and not rd:
-        print(f'{file} already exists')
+        # print(f'{file} already exists')
         return
 
     # Download URL

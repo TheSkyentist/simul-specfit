@@ -18,7 +18,7 @@ from numpyro import plate, sample, deterministic as determ, distributions as dis
 # Simul-SpecFit
 from simul_specfit import priors, optimized
 from simul_specfit.spectra import Spectra
-from simul_specfit.calibration import Calibration
+from simul_specfit.calibration import RubiesCalibration
 
 # Speed of light
 C: Final[float] = consts.c.to(u.km / u.s).value
@@ -27,9 +27,9 @@ C: Final[float] = consts.c.to(u.km / u.s).value
 # Define the model
 def multiSpecModel(
     spectra: Spectra,
-    Z: BCOO,
-    Σ: BCOO,
     F: BCOO,
+    Z: BCOO,
+    Σs: tuple[BCOO, BCOO, BCOO],
     line_centers: jnp.ndarray,
     line_guesses: jnp.ndarray,
     cont_regs: jnp.ndarray,
@@ -42,12 +42,12 @@ def multiSpecModel(
     ----------
     spectra : Spectra
         Spectra to fit
-    Z : BCOO
-        Redshift matrix
-    Σ : BCOO
-        Width matrix
     F : BCOO
         Flux matrix
+    Z : BCOO
+        Redshift matrix
+    Σs : BCOO, BCOO, BCOO
+        Width matrices
     line_centers : jnp.ndarray
         Line centers
     line_guesses : jnp.ndarray
@@ -78,7 +78,16 @@ def multiSpecModel(
         offsets = sample('cont_offset', priors.height_prior(cont_guesses))
 
     # Build Spectrum Calibratsion
-    calib = Calibration(spectra.names, spectra.fixed)
+    calib = RubiesCalibration(spectra.names, spectra.fixed)
+
+    # Plate for fluxes
+    Nf = F.shape[0]  # Number of independent fluxes
+    with plate(f'Nf = {Nf}', Nf):
+        # Sample fluxes
+        fluxes = sample('f', priors.flux_prior(jnp.ones_like(F) @ line_guesses))
+
+        # Broadcast fluxes
+        fluxes = determ('f_all', fluxes @ F)
 
     # Plate for redshifts
     Nz = Z.shape[0]  # Number of independent redshifts
@@ -90,23 +99,38 @@ def multiSpecModel(
         # Broadcast redshifts and compute centers
         centers = line_centers * oneplusz
 
+    # Unpack the width matrices
+    Σ, Σadd, Σuadd = Σs
+
     # Plate for widths
-    Nσ = Σ.shape[0]  # Number of independent widths
+    Nσ = Σ.shape[0]  # Number of independent narrow widths
     with plate(f'Nσ = {Nσ}', Nσ):
         # Sample widths
         widths = sample('σ', priors.sigma_prior())
 
-        # Broadcast widths and compute in wavelength units
-        widths = centers * determ('σ_all', widths @ Σ) / C
+        # Broadcast widths
+        all_widths = widths @ Σ
 
-    # Plate for fluxes
-    Nf = F.shape[0]  # Number of independent fluxes
-    with plate(f'Nf = {Nf}', Nf):
-        # Sample fluxes
-        fluxes = sample('f', priors.flux_prior(F @ line_guesses))
+    # If there are additional widths, plate over them
+    if Σadd.shape[0]:
+        # Plate for additional widths
+        Nσadd = Σadd.shape[0]  # Number of independent additional widths
+        with plate(f'Nσ-add = {Nσadd}', Nσadd):
+            # Create lower bounds for initial widths
+            widths_add_lower = widths @ Σuadd
 
-        # Broadcast fluxes
-        fluxes = determ('f_all', fluxes @ F)
+            # Sample additional widths
+            # Ideally encapsulate this to be dependent on the line type later!
+            widths_add = sample(
+                'σ-add', priors.sigma_prior(low=widths_add_lower + 100, high=2000)
+            )
+            all_widths_add = widths_add @ Σadd
+
+            # Combine the widths
+            all_widths = all_widths + all_widths_add
+
+    # Broadcast widths and compute in wavelength units
+    widths = centers * determ('σ_all', all_widths) / C
 
     # Compute equivalent widths
     linecont = optimized.linearContinua(
@@ -120,7 +144,7 @@ def multiSpecModel(
         low, wave, high, flux, err = (jnp.array(x) for x in spectrum())
 
         # Get the calibration
-        lsf_scale, pixel_offset, flux_scale = calib(spectrum.name)
+        lsf_scale, pixel_offset, flux_scale = calib[spectrum.name]
 
         # Apply pixel offset
         low = low - spectrum.offset(low, pixel_offset)

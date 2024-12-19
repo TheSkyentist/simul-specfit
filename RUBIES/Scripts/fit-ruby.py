@@ -15,19 +15,20 @@ import numpy as np
 # Astronomy packages
 from astropy.table import Table
 
-from simul_specfit.fitting import RubiesMCMCFit
-
-# Load config from JSON file
-with open('config-narrow.json', 'r') as f:
-    config = json.load(f)
+from simul_specfit.fitting import RubiesFit
 
 
 def main():
     # Parse arguements
     parser = argparse.ArgumentParser(description='Fit Ruby')
+    parser.add_argument('config', type=str, help='Config')
     parser.add_argument('root', type=str, help='Root')
     parser.add_argument('srcid', type=int, help='Source ID')
     args = parser.parse_args()
+
+    # Load config from JSON file
+    with open(args.config, 'r') as f:
+        config = json.load(f)
 
     # Ensure results/Plots directories exist
     for d in ['RUBIES/Results', 'RUBIES/Plots']:
@@ -42,14 +43,14 @@ def main():
 
     # Process
     if len(rows) > 0:
-        process(rows)
+        process(rows, config)
     else:
         raise ValueError('No rows found')
 
 
-def process(rows):
+def process(rows, config):
     # Get MCMC
-    RubiesMCMCFit(config, rows)
+    RubiesFit(config, rows)
 
 
 if __name__ == '__main__':

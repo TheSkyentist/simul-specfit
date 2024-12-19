@@ -18,9 +18,7 @@ from jax import numpy as jnp
 from scipy.optimize import minimize
 
 
-def plotResults(
-    savedir: str, config: list, rows: Table, samples: dict, model_args: tuple
-) -> None:
+def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> None:
     """
     Plot the results of the sampling.
 
@@ -32,16 +30,19 @@ def plotResults(
         Configuration list
     rows : Table
         Table of the rows
-    samples : dict
-        Samples from the MCMC
     model_args : tuple
         Arguments for the model
+    samples : dict
+        Samples from the MCMC
+
 
     Returns
     -------
     None
 
     """
+    # Get config name
+    cname = '_' + config['Name'] if config['Name'] else ''
 
     # Unpack model arguements
     spectra, _, _, _, line_centers, _, cont_regs, _ = model_args
@@ -143,7 +144,9 @@ def plotResults(
     )
 
     # Show the plot
-    fig.savefig(os.path.join(savedir, f'{rows[0]['root']}-{rows[0]['srcid']}_fit.pdf'))
+    fig.savefig(
+        os.path.join('RUBIES/Plots', f'{rows[0]['root']}-{rows[0]['srcid']}{cname}-fit.pdf')
+    )
     pyplot.close(fig)
 
 

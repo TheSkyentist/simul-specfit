@@ -1,4 +1,5 @@
 {
+    "Name": "",
     "Unit": "Angstrom",
     "Groups": [
         {
@@ -16,8 +17,8 @@
                 {
                     "Name": "[NII]",
                     "Lines": [
-                        {"Wavelength": 6585.27, "RelStrength": 1},
-                        {"Wavelength": 6549.86, "RelStrength": 0.34}
+                        {"Wavelength": 6585.27, "RelStrength": 2.95},
+                        {"Wavelength": 6549.86, "RelStrength": 1}
                     ]
                 },
                 {
@@ -30,8 +31,8 @@
                 {
                     "Name": "[OIII]",
                     "Lines": [
-                        {"Wavelength": 5008.24, "RelStrength": 1},
-                        {"Wavelength": 4960.295, "RelStrength": 0.35}
+                        {"Wavelength": 5008.24, "RelStrength": 2.98},
+                        {"Wavelength": 4960.295, "RelStrength": 1}
                     ]
                 }
             ]
