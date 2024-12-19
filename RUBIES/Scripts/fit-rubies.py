@@ -8,7 +8,7 @@ Script to fit RUBIES spectra
 import os
 import json
 import argparse
-from multiprocessing import Pool, cpu_count
+import multiprocessing as mp
 
 # Numpy packages
 import numpy as np
@@ -18,18 +18,18 @@ from astropy.table import Table
 
 from simul_specfit.fitting import RubiesFit
 
-import multiprocessing
-multiprocessing.set_start_method('spawn', force=True)
+# Spawn for Linux sever
+mp.set_start_method('spawn', force=True)
 
 def main():
     # Parse arguements
     parser = argparse.ArgumentParser(description='Fit Rubies')
     parser.add_argument('config', type=str, help='Configuration file')
-    parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=cpu_count())
+    parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=mp.cpu_count())
     args = parser.parse_args()
 
     # Load config from JSON file
-    with open('config-narrow.json', 'r') as f:
+    with open(args.config, 'r') as f:
         config = json.load(f)
 
     # Ensure results/Plots directories exist
@@ -55,7 +55,7 @@ def main():
         allrows.append(goodrows)
 
     # Multiprocess
-    with Pool(args.ncpu) as pool:
+    with mp.Pool(args.ncpu) as pool:
         pool.starmap(process, [(rows, config) for rows in allrows])
 
 

@@ -145,7 +145,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
 
     # Show the plot
     fig.savefig(
-        os.path.join('RUBIES/Plots', f'{rows[0]['root']}-{rows[0]['srcid']}{cname}-fit.pdf')
+        os.path.join('RUBIES/Plots', f'{rows[0]['root']}-{rows[0]['srcid']}{cname}_fit.pdf')
     )
     pyplot.close(fig)
 
