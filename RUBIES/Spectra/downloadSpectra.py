@@ -47,9 +47,6 @@ def downloadSpec(
         # print(f'Downloaded {file}')
     else:
         print(f'Error downloading {file}')
-    
-    print()
-
 
 # Define main function
 def main() -> None:
