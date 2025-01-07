@@ -44,7 +44,7 @@ def downloadSpec(
     if r.status_code == 200:
         with open(file, 'wb') as f:
             f.write(r.content)
-        print(f'Downloaded {file}')
+        # print(f'Downloaded {file}')
     else:
         print(f'Error downloading {file}')
     
