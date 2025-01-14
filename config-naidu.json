@@ -1,0 +1,33 @@
+{
+    "Name": "broad",
+    "Unit": "Angstrom",
+    "Groups": [
+        {
+            "Name": "Narrow",
+            "TieRedshift": false,
+            "TieDispersion": false,
+            "Species": [
+                {
+                    "Name": "HI",
+                    "AdditionalComponents": {"broad" : "Broad"},
+                    "Lines": [
+                        {"Wavelength": 4862.68, "RelStrength": null}
+                    ]
+                },
+                {
+                    "Name": "[OIII]",
+                    "Lines": [
+                        {"Wavelength": 5008.24, "RelStrength": 2.98},
+                        {"Wavelength": 4960.295, "RelStrength": 1}
+                    ]
+                }
+            ]
+        },
+        {
+            "Name": "Broad",
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": []
+        }
+    ]
+}

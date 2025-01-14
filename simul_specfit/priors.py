@@ -52,7 +52,7 @@ def sigma_prior(low=0, high=1000) -> dist.Distribution:
         Prior distribution for the velocity dispersion σ
     """
 
-    return dist.Uniform(low=0, high=1000.0)
+    return dist.Uniform(low=low, high=high)
 
 
 def flux_prior(flux_guess: float) -> dist.Distribution:

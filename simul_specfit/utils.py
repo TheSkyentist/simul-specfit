@@ -158,14 +158,14 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
     Σ = BCOO((jnp.ones(len(σ_inds_nar), int), σ_inds_nar), shape=(n, i))
 
     # Create sparce matrix from nonempty rows
-    σ_inds_add, n = noEmptyRows(σ_inds_add)
-    Σadd = BCOO((jnp.ones(len(σ_inds_add), int), σ_inds_add), shape=(n, i))
+    σ_inds_add, nadd = noEmptyRows(σ_inds_add)
+    Σadd = BCOO((jnp.ones(len(σ_inds_add), int), σ_inds_add), shape=(nadd, i))
 
     # Create sparce matrix from nonempty rows
-    uadd_uinds, nx = noEmptyRows(uadd_uinds)
-    uadd_uinds, ny = noEmptyRows([[u[1], u[0]] for u in uadd_uinds])
+    uadd_uinds, _ = noEmptyRows(uadd_uinds)
+    uadd_uinds, _ = noEmptyRows([[u[1], u[0]] for u in uadd_uinds])
     uadd_uinds = [[u[1], u[0]] for u in uadd_uinds]
-    Σuadd = BCOO((jnp.ones(len(uadd_uinds), int), uadd_uinds), shape=(nx, ny))
+    Σuadd = BCOO((jnp.ones(len(uadd_uinds), int), uadd_uinds), shape=(n, nadd))
 
     return F, Z, (Σ, Σadd, Σuadd)
 

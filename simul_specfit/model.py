@@ -115,14 +115,14 @@ def multiSpecModel(
     if Σadd.shape[0]:
         # Plate for additional widths
         Nσadd = Σadd.shape[0]  # Number of independent additional widths
-        with plate(f'Nσ-add = {Nσadd}', Nσadd):
+        with plate(f'Nσ_add = {Nσadd}', Nσadd):
             # Create lower bounds for initial widths
             widths_add_lower = widths @ Σuadd
 
             # Sample additional widths
             # Ideally encapsulate this to be dependent on the line type later!
             widths_add = sample(
-                'σ-add', priors.sigma_prior(low=widths_add_lower + 100, high=2000)
+                'σ_add', priors.sigma_prior(low=widths_add_lower + 100, high=2000)
             )
             all_widths_add = widths_add @ Σadd
 
