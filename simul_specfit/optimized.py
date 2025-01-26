@@ -20,7 +20,8 @@ THRESHOLD: Final[float] = 4.2 if jax.config.jax_enable_x64 else 3.9
 # σ_halfvar = jnp.sqrt(2) * σ
 FWHM_TO_SIGMA: Final[float] = 1 / (2 * jnp.sqrt(jnp.log(2)))
 
-# Pseudo-Voight Profile Magic Numbers
+# Pseudo-Voigt Profile Magic Numbers
+# From Thompson+ (1987) DOI:10.1107/S0021889887087090
 MAGIC_FWHM: Final[jnp.ndarray] = jnp.array([1, 2.69268, 2.42843, 4.47163, 0.07842, 1])
 MAGIC_ETA: Final[jnp.ndarray] = jnp.array([1.33603, -0.47719, 0.11116])
 
@@ -59,7 +60,7 @@ def integrateGaussian(
     threshold: float = 4.2,
 ) -> jnp.ndarray:
     """
-    Integrate N emission lines over λ bins
+    Integrate N emission lines over λ bins of Normal Distribution
     Return matrix of fluxes in each bin for each line
 
     Parameters
@@ -71,7 +72,7 @@ def integrateGaussian(
     centers : jnp.ndarray (N,)
         Centers of the emission lines
     fwhms : jnp.ndarray (N,)
-        Effective fwhms at each line
+        Fwhms at each line
     threshold : float, optional
         Threshold for the integral, defaults to 4.2
         erf(3.9) == 1 for 32 bit
@@ -121,7 +122,7 @@ def integrateCauchy(
     centers : jnp.ndarray (N,)
         Centers of the emission lines
     fwhms : jnp.ndarray (N,)
-        Effective fwhms at each line
+        Fwhms at each line
 
     Returns
     -------
@@ -153,7 +154,7 @@ def integrateVoigt(
     """
     Integrate N emission lines over λ bins of Voigt distribution
     Return matrix of integrals in each bin for each line
-    Uses pseudo-Voigt profile from
+    Uses pseudo-Voigt profile from Thompson+ (1987) DOI:10.1107/S0021889887087090
 
     Parameters
     ----------
