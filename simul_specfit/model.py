@@ -102,35 +102,35 @@ def multiSpecModel(
     # Unpack the width matrices
     Σ, Σadd, Σuadd = Σs
 
-    # Plate for widths
-    Nσ = Σ.shape[0]  # Number of independent narrow widths
+    # Plate for fwhms
+    Nσ = Σ.shape[0]  # Number of independent narrow fwhms
     with plate(f'Nσ = {Nσ}', Nσ):
-        # Sample widths
-        widths = sample('σ', priors.sigma_prior())
+        # Sample fwhms
+        fwhms = sample('fwhm', priors.sigma_prior())
 
-        # Broadcast widths
-        all_widths = widths @ Σ
+        # Broadcast fwhms
+        all_fwhms = fwhms @ Σ
 
-    # If there are additional widths, plate over them
+    # If there are additional fwhms, plate over them
     if Σadd.shape[0]:
-        # Plate for additional widths
-        Nσadd = Σadd.shape[0]  # Number of independent additional widths
+        # Plate for additional fwhms
+        Nσadd = Σadd.shape[0]  # Number of independent additional fwhms
         with plate(f'Nσ_add = {Nσadd}', Nσadd):
-            # Create lower bounds for initial widths
-            widths_add_lower = widths @ Σuadd
+            # Create lower bounds for initial fwhms
+            fwhms_add_lower = fwhms @ Σuadd
 
-            # Sample additional widths
+            # Sample additional fwhms
             # Ideally encapsulate this to be dependent on the line type later!
-            widths_add = sample(
-                'σ_add', priors.sigma_prior(low=widths_add_lower + 100, high=2000)
+            fwhms_add = sample(
+                'fwhm_add', priors.sigma_prior(low=fwhms_add_lower + 100, high=2000)
             )
-            all_widths_add = widths_add @ Σadd
+            all_fwhms_add = fwhms_add @ Σadd
 
-            # Combine the widths
-            all_widths = all_widths + all_widths_add
+            # Combine the fwhms
+            all_fwhms = all_fwhms + all_fwhms_add
 
-    # Broadcast widths and compute in wavelength units
-    widths = centers * determ('σ_all', all_widths) / C
+    # Transform fwhms into wavelength units
+    fwhms = centers * determ('fwhm_all', all_fwhms) / C
 
     # Compute equivalent widths
     linecont = optimized.linearContinua(
@@ -158,13 +158,16 @@ def multiSpecModel(
 
         # Broaden the lines
         lsf = spectrum.lsf(centers, lsf_scale)
-        tot_widths = jnp.sqrt(jnp.square(widths) + jnp.square(lsf))
+        tot_fwhms = jnp.sqrt(jnp.square(fwhms) + jnp.square(lsf))
 
-        # Compute lines
-        lines = determ(
-            f'{spectrum.name}_lines',
-            optimized.integrate(low, high, centers, tot_widths, fluxes),
-        )
+        # Integrate pixels (note, this is total integral, not a density)
+        f = optimized.integrateGaussian(low, high, centers, tot_fwhms)
+
+        # Divide by bin width to compute flux density
+        fλ = f / (high - low)[:, jnp.newaxis]
+
+        # Multiply by line fluxes
+        lines = determ(f'{spectrum.name}_lines', fluxes * fλ)
 
         # Compute continuum
         continuum = determ(
@@ -241,12 +244,12 @@ def plotMultiSpecModel(
         redshift = sample('z', priors.redshift_prior(spectra.redshift_initial))
         redshift = redshift @ Z
 
-    # Plate for widths
-    Nσ = Σ.shape[0]  # Number of independent widths
+    # Plate for fwhms
+    Nσ = Σ.shape[0]  # Number of independent fwhms
     with plate(f'Dispersions (N = {Nσ})', Nσ):
-        # Sample widths
-        widths = sample('σ', priors.sigma_prior())
-        widths = widths @ Σ
+        # Sample fwhms
+        fwhms = sample('fwhm', priors.fwhm_prior())
+        fwhms = fwhms @ Σ
 
     # Plate for fluxes
     Nf = F.shape[0]  # Number of independent fluxes
@@ -258,7 +261,7 @@ def plotMultiSpecModel(
     # Plate over the lines
     Nl = len(line_centers)  # Number of lines
     with plate(f'Lines (N = {Nl})', Nl):
-        lines = determ('Lines', redshift + widths + fluxes).mean()
+        lines = determ('Lines', redshift + fwhms + fluxes).mean()
         determ('Equivalent Width', fluxes + cont)
 
     # LSF Scale

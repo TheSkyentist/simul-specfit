@@ -2,9 +2,27 @@
 Module containing optimized routines
 """
 
+# Typing
+from typing import Final
+
 # JAX packages
+import jax
 from jax.scipy.special import erf
 from jax import jit, vmap, lax, numpy as jnp
+
+# Set threshold where error function doesn't need to be computed
+# erf(3.9) == 1 for 32 bit
+# erf(4.2) == 1 for 64 bit
+THRESHOLD: Final[float] = 4.2 if jax.config.jax_enable_x64 else 3.9
+
+# Conversion factor from FWHM to sigma for variance = 1/2
+# σ = fwhm / ( 2 * jnp.sqrt( 2 * jnp.log(2) ) )
+# σ_halfvar = jnp.sqrt(2) * σ
+FWHM_TO_SIGMA: Final[float] = 1 / (2 * jnp.sqrt(jnp.log(2)))
+
+# Pseudo-Voight Profile Magic Numbers
+MAGIC_FWHM: Final[jnp.ndarray] = jnp.array([1, 2.69268, 2.42843, 4.47163, 0.07842, 1])
+MAGIC_ETA: Final[jnp.ndarray] = jnp.array([1.33603, -0.47719, 0.11116])
 
 
 # Could be replaced by one-liner, but this is more readable
@@ -33,12 +51,11 @@ def erfcond(good: jnp.ndarray, sigma: jnp.ndarray) -> jnp.ndarray:
 
 
 @jit
-def integrate(
+def integrateGaussian(
     low_edge: jnp.ndarray,
     high_edge: jnp.ndarray,
     centers: jnp.ndarray,
-    widths: jnp.ndarray,
-    fluxes: jnp.ndarray,
+    fwhms: jnp.ndarray,
     threshold: float = 4.2,
 ) -> jnp.ndarray:
     """
@@ -53,10 +70,8 @@ def integrate(
         High edge of the bins
     centers : jnp.ndarray (N,)
         Centers of the emission lines
-    widths : jnp.ndarray (N,)
-        Effective widths at each line
-    fluxes : jnp.ndarray (N,)
-        Flux in the lines
+    fwhms : jnp.ndarray (N,)
+        Effective fwhms at each line
     threshold : float, optional
         Threshold for the integral, defaults to 4.2
         erf(3.9) == 1 for 32 bit
@@ -68,13 +83,13 @@ def integrate(
         Fluxes in each bin for each line
     """
 
-    # Adjust width to be for 1/2 variance for erf
+    # Transform to σ and adjust to be for variance = 1/2
     # Inverse width once for faster computation
-    invwidths = 1 / (jnp.sqrt(2) * widths)
+    invfwhms = 1 / (fwhms * FWHM_TO_SIGMA)
 
     # Compute residual
-    low_resid = (low_edge[:, jnp.newaxis] - centers) * invwidths
-    high_resid = (high_edge[:, jnp.newaxis] - centers) * invwidths
+    low_resid = (low_edge[:, jnp.newaxis] - centers) * invfwhms
+    high_resid = (high_edge[:, jnp.newaxis] - centers) * invfwhms
 
     # Restrict to only those that won't compute to zero
     good = jnp.logical_and(-threshold < low_resid, high_resid < threshold)
@@ -83,8 +98,96 @@ def integrate(
     pixel_ints = (erfcond(good, high_resid) - erfcond(good, low_resid)) / 2
 
     # Compute fluxes
-    # Divide by bin width to get flux density
-    return (fluxes * pixel_ints) / (high_edge - low_edge)[:, jnp.newaxis]
+    return pixel_ints
+
+
+@jit
+def integrateCauchy(
+    low_edge: jnp.ndarray,
+    high_edge: jnp.ndarray,
+    centers: jnp.ndarray,
+    fwhms: jnp.ndarray,
+) -> jnp.ndarray:
+    """
+    Integrate N emission lines over λ bins of Cauchy distribution
+    Return matrix of integrals in each bin for each line
+
+    Parameters
+    ----------
+    low_edge : jnp.ndarray (λ,)
+        Low edge of the bins
+    high_edge : jnp.ndarray (λ,)
+        High edge of the bins
+    centers : jnp.ndarray (N,)
+        Centers of the emission lines
+    fwhms : jnp.ndarray (N,)
+        Effective fwhms at each line
+
+    Returns
+    -------
+    jnp.ndarray (λ, N)
+        Integral in each bin for each line
+    """
+
+    # Calculate inverse width
+    invfwhms = 1 / fwhms
+
+    # Compute residual
+    low_resid = (low_edge[:, jnp.newaxis] - centers) * invfwhms
+    high_resid = (high_edge[:, jnp.newaxis] - centers) * invfwhms
+
+    # Compute Pixel integral with arctan
+    pixel_ints = (jnp.arctan(high_resid) - jnp.arctan(low_resid)) / jnp.pi
+
+    return pixel_ints
+
+
+@jit
+def integrateVoigt(
+    low_edge: jnp.ndarray,
+    high_edge: jnp.ndarray,
+    centers: jnp.ndarray,
+    fwhm_g: jnp.ndarray,
+    fwhm_γ: jnp.ndarray,
+) -> jnp.ndarray:
+    """
+    Integrate N emission lines over λ bins of Voigt distribution
+    Return matrix of integrals in each bin for each line
+    Uses pseudo-Voigt profile from
+
+    Parameters
+    ----------
+    low_edge : jnp.ndarray (λ,)
+        Low edge of the bins
+    high_edge : jnp.ndarray (λ,)
+        High edge of the bins
+    centers : jnp.ndarray (N,)
+        Centers of the emission lines
+    fwhm_g : jnp.ndarray (N,)
+        Gaussian Component FWHM at each line
+    fwhm_γ : jnp.ndarray (N,)
+        Cauchy/Lorentzian Component FWHM at each line
+
+    Returns
+    -------
+    jnp.ndarray (λ, N)
+        Integral in each bin for each line
+    """
+
+    # Calculate FWHM for pseudo-Voigt components
+    powers = jnp.arange(len(MAGIC_FWHM))
+    fwhm = jnp.sum(MAGIC_FWHM * (fwhm_g**powers) * (fwhm_γ ** powers[::-1])) ** (1 / 5)
+
+    # Compute contribution fraction for Pseudo-Voigt
+    fwhm_ratio = fwhm_γ / fwhm
+    η = jnp.sum(MAGIC_ETA * fwhm_ratio ** jnp.arange(1, len(MAGIC_ETA) + 1))
+
+    # Compute components
+    L = η * integrateCauchy(low_edge, high_edge, centers, fwhm)
+    G = (1 - η) * integrateGaussian(low_edge, high_edge, centers, fwhm)
+
+    # Compute total pixel integral
+    return L + G
 
 
 @jit

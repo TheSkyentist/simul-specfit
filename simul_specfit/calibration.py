@@ -78,7 +78,7 @@ def InterpLSFCurve(lsf_file: str, λ_unit: u.Unit) -> Callable:
 
     # Convert to JAX arrays in the correct units
     wave = jnp.array((lsf_tab['wave']).to(λ_unit))
-    sigma = jnp.array((lsf_tab['sigma']).to(λ_unit))
+    sigma = jnp.array((lsf_tab['sigma']).to(λ_unit)) * 2 * jnp.sqrt(2 * jnp.log(2))
 
     # Compute Interpolated lsf Curve
     @jit

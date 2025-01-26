@@ -35,9 +35,9 @@ def redshift_prior(
     return dist.Uniform(low=z0 - δz, high=z0 + δz)
 
 
-def sigma_prior(low=0, high=1000) -> dist.Distribution:
+def fwhm_prior(low=0, high=2500) -> dist.Distribution:
     """
-    Return a uniform prior for the velocity dispersion σ
+    Return a uniform prior for the velocity dispersion fwhm
 
     Parameters
     ----------
