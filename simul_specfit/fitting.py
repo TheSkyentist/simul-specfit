@@ -217,7 +217,7 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
     ]
     for sampname, colname, unit in zip(
         ['z', 'f', 'σ', 'ew'],
-        ['redshift', 'flux', 'width', 'ew'],
+        ['redshift', 'flux', 'fwhm', 'ew'],
         [
             u.dimensionless_unscaled,
             u.Unit(1e-20 * u.erg / u.cm**2 / u.s),
