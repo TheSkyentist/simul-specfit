@@ -2940,7 +2940,7 @@ packages:
 - pypi: .
   name: simul-specfit
   version: 0.2.0
-  sha256: a82b5e7e30ffb443a66d5ef4f9feb72a8d8c4e92f9b086deea0903b246f617b7
+  sha256: 4f5acc8c2ae96365f3ce297f3eaf71537f1a47b11552168649216f0281434f55
   requires_dist:
   - numpyro>=0.16.1,<0.17
   - jaxns>=2.6.6,<3

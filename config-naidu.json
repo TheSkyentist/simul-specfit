@@ -1,9 +1,8 @@
 {
-    "Name": "broad",
+    "Name": "naidu",
     "Unit": "Angstrom",
-    "Groups": [
-        {
-            "Name": "Narrow",
+    "Groups": {
+         "Narrow": {
             "TieRedshift": false,
             "TieDispersion": false,
             "Species": [
@@ -23,11 +22,10 @@
                 }
             ]
         },
-        {
-            "Name": "Broad",
+        "Broad": {
             "TieRedshift": true,
             "TieDispersion": true,
             "Species": []
         }
-    ]
+    }
 }

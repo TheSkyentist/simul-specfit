@@ -1,9 +1,8 @@
 {
     "Name": "",
     "Unit": "Angstrom",
-    "Groups": [
-        {
-            "Name": "Narrow",
+    "Groups": {
+        "Narrow": {
             "TieRedshift": true,
             "TieDispersion": true,
             "Species": [
@@ -37,5 +36,5 @@
                 }
             ]
         }
-    ]
+    }
 }

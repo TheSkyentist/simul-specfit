@@ -3,7 +3,7 @@ authors = [{name = "TheSkyentist", email = "raphael.hviding@gmail.com"}]
 description = "Simultaneous Spectroscopic Fitting of NIRSpec PRISM/G395M"
 name = "simul-specfit"
 requires-python = ">=3.12, <3.14"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [ "numpyro>=0.16.1,<0.17", "jaxns>=2.6.6,<3", "tensorflow-probability>=0.25.0,<0.26", "astropy>=7.0.0,<8", "matplotlib>=3.10.0,<4", "jax>=0.5.0,<0.6", "graphviz>=0.20.3,<0.21", "requests>=2.32.3,<3"]
 
 [build-system]

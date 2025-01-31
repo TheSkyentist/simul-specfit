@@ -103,10 +103,10 @@ def multiSpecModel(
     Σ, Σadd, Σuadd = Σs
 
     # Plate for fwhms
-    Nσ = Σ.shape[0]  # Number of independent narrow fwhms
-    with plate(f'Nσ = {Nσ}', Nσ):
+    Nw = Σ.shape[0]  # Number of independent narrow fwhms
+    with plate(f'Nw = {Nw}', Nw):
         # Sample fwhms
-        fwhms = sample('fwhm', priors.sigma_prior())
+        fwhms = sample('fwhm', priors.fwhm_prior())
 
         # Broadcast fwhms
         all_fwhms = fwhms @ Σ
@@ -114,15 +114,15 @@ def multiSpecModel(
     # If there are additional fwhms, plate over them
     if Σadd.shape[0]:
         # Plate for additional fwhms
-        Nσadd = Σadd.shape[0]  # Number of independent additional fwhms
-        with plate(f'Nσ_add = {Nσadd}', Nσadd):
+        Nwadd = Σadd.shape[0]  # Number of independent additional fwhms
+        with plate(f'Nw_add = {Nwadd}', Nwadd):
             # Create lower bounds for initial fwhms
             fwhms_add_lower = fwhms @ Σuadd
 
             # Sample additional fwhms
             # Ideally encapsulate this to be dependent on the line type later!
             fwhms_add = sample(
-                'fwhm_add', priors.sigma_prior(low=fwhms_add_lower + 100, high=2000)
+                'fwhm_add', priors.fwhm_prior(low=fwhms_add_lower + 100, high=5000)
             )
             all_fwhms_add = fwhms_add @ Σadd
 
@@ -156,15 +156,23 @@ def multiSpecModel(
         # centers_shift = centers - spectrum.offset(centers, pixel_offset)
         # determ(f'{spectrum.name}_z_all', (centers_shift / line_centers) - 1)
 
-        # Broaden the lines
-        lsf = spectrum.lsf(centers, lsf_scale)
-        tot_fwhms = jnp.sqrt(jnp.square(fwhms) + jnp.square(lsf))
+        # Get the LSF of the lines
+        fwhms_lsf = spectrum.lsf(centers, lsf_scale)
+
+        # Broad lines
+        broad = jnp.any(Σadd.todense(), 0)
 
         # Integrate pixels (note, this is total integral, not a density)
-        f = optimized.integrateGaussian(low, high, centers, tot_fwhms)
+        pixints = jnp.where(
+            broad,
+            optimized.integrateVoigt(low, high, centers, fwhms_lsf, fwhms),
+            optimized.integrateGaussian(
+                low, high, centers, jnp.sqrt(jnp.square(fwhms_lsf) + jnp.square(fwhms))
+            ),
+        )
 
         # Divide by bin width to compute flux density
-        fλ = f / (high - low)[:, jnp.newaxis]
+        fλ = pixints / (high - low)[:, jnp.newaxis]
 
         # Multiply by line fluxes
         lines = determ(f'{spectrum.name}_lines', fluxes * fλ)
@@ -245,8 +253,8 @@ def plotMultiSpecModel(
         redshift = redshift @ Z
 
     # Plate for fwhms
-    Nσ = Σ.shape[0]  # Number of independent fwhms
-    with plate(f'Dispersions (N = {Nσ})', Nσ):
+    Nw = Σ.shape[0]  # Number of independent fwhms
+    with plate(f'Dispersions (N = {Nw})', Nw):
         # Sample fwhms
         fwhms = sample('fwhm', priors.fwhm_prior())
         fwhms = fwhms @ Σ

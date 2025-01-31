@@ -17,7 +17,7 @@ import numpy as np
 from jax import random
 
 # Simul-SpecFit
-from simul_specfit import utils
+from simul_specfit import initial, parameters
 from simul_specfit.spectra import RubiesSpectra
 from simul_specfit.model import multiSpecModel
 from simul_specfit.plotting import plotResults
@@ -65,18 +65,18 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
     spectra = RubiesSpectra(rows, 'RUBIES/Spectra')
 
     # Restrict config to what we have coverage of
-    config = utils.restrictConfig(config, spectra)
+    config = parameters.restrictConfig(config, spectra)
 
     # If the config is empty, skip
     if len(config['Groups']) == 0:
         raise ValueError('No Line Coverage')
 
     # Get what we need for fitting
-    F, Z, Σs = utils.configToMatrices(config)
-    line_centers, line_guesses = utils.linesFluxesGuess(config, spectra)
+    F, Z, Σs = parameters.configToMatrices(config)
+    line_centers, line_guesses = initial.linesFluxesGuess(config, spectra)
 
     # Get continuum regions
-    cont_regs, cont_guesses = utils.computeContinuumRegions(config, spectra)
+    cont_regs, cont_guesses = initial.computeContinuumRegions(config, spectra)
 
     # Restrict spectra to continuum regions and rescale errorbars in each region
     spectra.restrictAndRescale(config, cont_regs)
@@ -99,7 +99,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
 
 
 def MCMCFit(
-    model_args: tuple, rng_key: random.PRNGKey, N: int = 1000
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 500
 ) -> tuple[dict, dict]:
     """
     Fit the RUBIES data with MCMC.
@@ -117,7 +117,7 @@ def MCMCFit(
 
     # MCMC
     kernel = infer.NUTS(multiSpecModel)
-    mcmc = infer.MCMC(kernel, num_samples=N, num_warmup=N)
+    mcmc = infer.MCMC(kernel, num_samples=N, num_warmup=250)
     mcmc.run(rng_key, *model_args)
 
     # Get the samples
@@ -194,6 +194,10 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
     )
     samples['ew_all'] = samples['ew_all'] * spectra.λ_unit.to(u.AA)
 
+    # Add spectra wavelength to samples
+    for spectrum in spectra.spectra:
+        samples[f'{spectrum.name}_wavelength'] = spectrum.wave
+
     # Create outputs
     colnames = [
         n for n in ['lsf_scale', 'PRISM_flux', 'PRISM_offset'] if n in samples.keys()
@@ -208,15 +212,13 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Get names of the lines
     line_names = [
-        f'{group['Name']}-{species['Name']}-{line['Wavelength']}'
-        if group['Name']
-        else f'{species['Name']}-{line['Wavelength']}'
-        for group in config['Groups']
+        f'{species["Name"]}-{species["LineType"]}-{line["Wavelength"]}'
+        for _, group in config['Groups'].items()
         for species in group['Species']
         for line in species['Lines']
     ]
     for sampname, colname, unit in zip(
-        ['z', 'f', 'σ', 'ew'],
+        ['z', 'f', 'fwhm', 'ew'],
         ['redshift', 'flux', 'fwhm', 'ew'],
         [
             u.dimensionless_unscaled,
@@ -237,6 +239,6 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
         [fits.PrimaryHDU(), fits.BinTableHDU(out), fits.BinTableHDU(extra)]
     )
     hdul.writeto(
-        f'RUBIES/Results/{rows[0]['root']}-{rows[0]['srcid']}{cname}_summary.fits',
+        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.fits',
         overwrite=True,
     )

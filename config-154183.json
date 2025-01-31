@@ -1,0 +1,63 @@
+{
+    "Name": "broad",
+    "Unit": "Angstrom",
+    "Groups": {
+        "Narrow": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": [
+                {
+                    "Name": "[NII]",
+                    "Lines": [
+                        {"Wavelength": 6549.86, "RelStrength": 1},
+                        {"Wavelength": 6585.27, "RelStrength": 2.95}
+                    ]
+                },
+                {
+                    "Name": "HI",
+                    "AdditionalComponents": {
+                        "cauchy" : "Broad", 
+                        "absorption" : "Absorption"
+                     },
+                    "Lines": [
+                        {"Wavelength": 4862.68, "RelStrength": null},
+                        {"Wavelength": 6564.61, "RelStrength": null},
+                        {"Wavelength": 10052.6, "RelStrength": null},
+                        {"Wavelength": 10941.17, "RelStrength": null}
+
+                    ]
+                },
+                {
+                    "Name": "[SII]",
+                    "Lines": [
+                        {"Wavelength": 6718.29, "RelStrength": null},
+                        {"Wavelength": 6732.67, "RelStrength": null}
+                    ]
+                },
+                {
+                    "Name": "[OIII]",
+                    "Lines": [
+                        {"Wavelength": 4960.295, "RelStrength": 1},
+                        {"Wavelength": 5008.24, "RelStrength": 2.98}
+                    ]
+                },
+                {
+                    "Name": "HeI",
+                    "Lines": [
+                        {"Wavelength": 10833.3, "RelStrength": null}
+                    ]
+                }
+            ]
+        },
+        "Broad": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": []
+        },
+        "Absorption": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": []  
+        }
+    }
+}

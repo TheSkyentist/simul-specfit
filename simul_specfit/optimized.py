@@ -1,5 +1,5 @@
 """
-Module containing optimized routines
+Optimized routines
 """
 
 # Typing
@@ -131,11 +131,11 @@ def integrateCauchy(
     """
 
     # Calculate inverse width
-    invfwhms = 1 / fwhms
+    invhwhms = 2 / fwhms
 
     # Compute residual
-    low_resid = (low_edge[:, jnp.newaxis] - centers) * invfwhms
-    high_resid = (high_edge[:, jnp.newaxis] - centers) * invfwhms
+    low_resid = (low_edge[:, jnp.newaxis] - centers) * invhwhms
+    high_resid = (high_edge[:, jnp.newaxis] - centers) * invhwhms
 
     # Compute Pixel integral with arctan
     pixel_ints = (jnp.arctan(high_resid) - jnp.arctan(low_resid)) / jnp.pi
@@ -177,11 +177,19 @@ def integrateVoigt(
 
     # Calculate FWHM for pseudo-Voigt components
     powers = jnp.arange(len(MAGIC_FWHM))
-    fwhm = jnp.sum(MAGIC_FWHM * (fwhm_g**powers) * (fwhm_γ ** powers[::-1])) ** (1 / 5)
+    fwhm = jnp.sum(
+        MAGIC_FWHM
+        * (fwhm_g[:, jnp.newaxis] ** powers)
+        * (fwhm_γ[:, jnp.newaxis] ** powers[::-1]),
+        axis=1,
+    ) ** (1 / 5)
 
     # Compute contribution fraction for Pseudo-Voigt
     fwhm_ratio = fwhm_γ / fwhm
-    η = jnp.sum(MAGIC_ETA * fwhm_ratio ** jnp.arange(1, len(MAGIC_ETA) + 1))
+    η = jnp.sum(
+        MAGIC_ETA * (fwhm_ratio[:, jnp.newaxis] ** jnp.arange(1, len(MAGIC_ETA) + 1)),
+        axis=1,
+    )
 
     # Compute components
     L = η * integrateCauchy(low_edge, high_edge, centers, fwhm)

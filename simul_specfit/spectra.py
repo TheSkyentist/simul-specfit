@@ -398,7 +398,7 @@ class Spectrum:
 
         # Mask each line
         λ_unit = u.Unit(config['Unit'])
-        for group in config['Groups']:
+        for group in config['Groups'].values():
             for species in group['Species']:
                 for line in species['Lines']:
                     # Compute the line wavelength

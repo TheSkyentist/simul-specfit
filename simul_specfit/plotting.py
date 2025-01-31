@@ -5,16 +5,16 @@ Plotting functions for the results of the sampling
 # Standard library
 import os
 
-# Plotting packages
-from matplotlib import pyplot
+# Numerical packages
+import numpy as np
 
 # Astropy packages
 from astropy import units as u
 from astropy.table import Table
-
-# Numerical packages
-import numpy as np
 from jax import numpy as jnp
+
+# Plotting packages
+from matplotlib import pyplot
 from scipy.optimize import minimize
 
 
@@ -51,10 +51,8 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     Nspec, Nregs = len(spectra.spectra), len(cont_regs)
 
     # Plotting
-    figsize = (15, 12)  # (7.5 * Nregs, 6 * Nspec)
-    fig, axes = pyplot.subplots(
-        Nspec, Nregs, figsize=figsize, sharex='col', sharey='row'
-    )
+    figsize = (7.5 * Nregs, 6 * Nspec)
+    fig, axes = pyplot.subplots(Nspec, Nregs, figsize=figsize, sharex='col')
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
 
     # Ensure axes is always a 2D array
@@ -93,7 +91,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
             # Label the axes
             if j == 0:
                 ax.set(ylabel=f'{spectrum.name}')
-            # ax.set(xlim= * (1 + spectsra.redshift_initial))
+            ax.set(xlim=cont_reg)
 
             # Add rest frame axis
             rest_ax = ax.secondary_xaxis(
@@ -137,7 +135,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     fig.text(
         0.5,
         0.97,
-        f"{rows[0]['srcid']} ({rows[0]['root']}): $z = {spectrum.redshift_initial:.3f}$",
+        f'{rows[0]["srcid"]} ({rows[0]["root"]}): $z = {spectrum.redshift_initial:.3f}$',
         ha='center',
         va='center',
         fontsize='large',
@@ -145,7 +143,9 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
 
     # Show the plot
     fig.savefig(
-        os.path.join('RUBIES/Plots', f'{rows[0]['root']}-{rows[0]['srcid']}{cname}_fit.pdf')
+        os.path.join(
+            'RUBIES/Plots', f'{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_fit.pdf'
+        )
     )
     pyplot.close(fig)
 
@@ -178,7 +178,7 @@ def plotLines(ax, config, model_args) -> None:
 
     # Iterate over configuration
     names, centers = [], []
-    for group in config['Groups']:
+    for group in config['Groups'].items():
         for species in group['Species']:
             for line in species['Lines']:
                 # Get the line center
