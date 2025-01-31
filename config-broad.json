@@ -10,6 +10,7 @@
                     "Name": "HI",
                     "AdditionalComponents": {"broad" : "Broad"},
                     "Lines": [
+                        {"Wavelength": 4862.68, "RelStrength": null},
                         {"Wavelength": 6564.61, "RelStrength": null}
                     ]
                 }

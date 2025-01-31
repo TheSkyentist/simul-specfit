@@ -52,8 +52,10 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
 
     # Plotting
     figsize = (7.5 * Nregs, 6 * Nspec)
-    fig, axes = pyplot.subplots(Nspec, Nregs, figsize=figsize, sharex='col')
-    fig.subplots_adjust(hspace=0.05, wspace=0.05)
+    fig, axes = pyplot.subplots(
+        Nspec, Nregs, figsize=figsize, sharex='col', constrained_layout=True
+    )
+    # fig.subplots_adjust(hspace=0.05, wspace=0.05)
 
     # Ensure axes is always a 2D array
     if Nspec == 1 and Nregs == 1:
@@ -122,19 +124,19 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     )
     fig.supxlabel(
         f'Wavelength (Observed) [{spectrum.λ_unit.to_string(format="latex", fraction=False)}]',
-        y=0.06,
+        y=-0.01,
         va='center',
         fontsize='medium',
     )
     fig.suptitle(
-        f'Wavelength (Rest) [{spectrum.λ_unit.to_string(format="latex", fraction=False)}]',
-        y=0.93,
+        f'Wavelength (Rest) [{spectrum.λ_unit:latex_inline}]',
+        y=1.015,
         va='center',
         fontsize='medium',
     )
     fig.text(
         0.5,
-        0.97,
+        1.05,
         f'{rows[0]["srcid"]} ({rows[0]["root"]}): $z = {spectrum.redshift_initial:.3f}$',
         ha='center',
         va='center',

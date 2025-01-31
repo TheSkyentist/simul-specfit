@@ -17,10 +17,10 @@ import numpy as np
 from jax import random
 
 # Simul-SpecFit
-from simul_specfit import initial, parameters
-from simul_specfit.spectra import RubiesSpectra
 from simul_specfit.model import multiSpecModel
 from simul_specfit.plotting import plotResults
+from simul_specfit.spectra import RubiesSpectra
+from simul_specfit import utils, initial, parameters
 
 
 def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC'):
@@ -65,7 +65,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
     spectra = RubiesSpectra(rows, 'RUBIES/Spectra')
 
     # Restrict config to what we have coverage of
-    config = parameters.restrictConfig(config, spectra)
+    config = utils.restrictConfig(config, spectra)
 
     # If the config is empty, skip
     if len(config['Groups']) == 0:
