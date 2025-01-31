@@ -61,10 +61,7 @@ def multiSpecModel(
     -------
     None
     """
-
-    # Redshift the continuum regions
-    cont_regs = cont_regs * (1 + spectra.redshift_initial)
-
+    
     # Plate over the continua
     Nc = len(cont_regs)  # Number of continuum regions
     with plate(f'Nc = {Nc}', Nc):

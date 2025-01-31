@@ -14,6 +14,7 @@ import jax.numpy as jnp
 from simul_specfit import defaults
 from simul_specfit.spectra import Spectra, Spectrum
 
+
 def linesFluxesGuess(
     config: list,
     spectra: Spectra,
@@ -189,10 +190,10 @@ def computeContinuumRegions(
         else:
             cont_regs.append(region)
 
-    # Convert to correct units
+    # Convert to correct units and redshift
     cont_regs = jnp.array(
         [cont_regs.to(spectra.λ_unit).value for cont_regs in cont_regs]
-    )
+    ) * (1 + spectra.redshift_initial)
 
     return cont_regs, continuumHeightGuesses(cont_regs, config, spectra)
 

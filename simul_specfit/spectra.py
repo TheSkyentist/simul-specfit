@@ -346,11 +346,10 @@ class Spectrum:
         """
 
         # Compute the mask
-        opz = 1 + self.redshift_initial
         mask = np.logical_or.reduce(
             np.array(
                 [
-                    self.coverage(region[0] * opz, region[1] * opz, partial=False)
+                    self.coverage(region[0], region[1], partial=False)
                     for region in continuum_regions
                 ]
             )
@@ -387,9 +386,8 @@ class Spectrum:
             Masked region
         """
 
-        # Grow by redshift
+        # Compute redshift and dimensionless padding unit
         opz = 1 + self.redshift_initial
-        continuum_region = continuum_region * opz
         pad = (linepad / consts.c).to(u.dimensionless_unscaled).value
 
         # Extract the region
@@ -473,8 +471,7 @@ class Spectrum:
         newerr = np.zeros_like(self.err)
         for region in continuum_regions:
             # Compute the masks
-            opz = 1 + self.redshift_initial
-            regmask = self.coverage(region[0] * opz, region[1] * opz, partial=False)
+            regmask = self.coverage(region[0], region[1], partial=False)
             linemask = self.maskLines(config, region, linepad)
 
             # If not enough data, don't change errors

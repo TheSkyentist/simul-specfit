@@ -68,7 +68,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
 
         for j, ax in enumerate(axes[i]):
             # Get the continuum region
-            cont_reg = cont_regs[j] * (1 + spectra.redshift_initial)
+            cont_reg = cont_regs[j]
             mask = jnp.logical_and(wave > cont_reg[0], wave < cont_reg[1])
 
             # Plot the spectrum
