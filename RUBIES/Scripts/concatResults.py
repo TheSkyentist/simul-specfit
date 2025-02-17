@@ -7,28 +7,28 @@ from astropy.table import Table, vstack
 targets = Table.read('RUBIES/Targets/targets.fits')
 
 # Get unique
-unique = Table(np.unique(targets['root', 'srcid']))
+unique = Table(np.unique(targets['root', 'uid']))
 
 # Loop over unique
 rows = []
 for u in tqdm.tqdm(unique):
-    root, srcid = u
+    root, uid = u
     # root = root.decode('utf-8')
 
     # Check if results exist
-    if not os.path.exists(f'RUBIES/Results/{root}-{srcid}_fit.fits'):
+    if not os.path.exists(f'RUBIES/Results/{root}-{uid}_fit.fits'):
         continue
 
     # Load results
-    results = Table.read(f'RUBIES/Results/{root}-{srcid}_fit.fits')
+    results = Table.read(f'RUBIES/Results/{root}-{uid}_fit.fits')
 
     # Get mean and std of each column
     row = sum([(results[c].mean(), results[c].std()) for c in results.colnames], ())
     names = sum([(c, f'{c}_std') for c in results.colnames], ())
 
-    # Add root and srcid
-    row = (root, srcid) + row
-    names = ('root', 'srcid') + names
+    # Add root and uid
+    row = (root, uid) + row
+    names = ('root', 'uid') + names
 
     # Create table
     row = Table([[r] for r in row], names=names)
@@ -46,6 +46,6 @@ results.write('RUBIES/Results/REH-simul.fits', overwrite=True)
 #! /usr/bin/env python
 
 for u in unique:
-    rows = targets[np.logical_and(targets['root'] == u['root'],targets['srcid'] == u['srcid'])]
+    rows = targets[np.logical_and(targets['root'] == u['root'],targets['uid'] == u['uid'])]
     
     

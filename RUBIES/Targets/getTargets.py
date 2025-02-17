@@ -1,10 +1,18 @@
 #! /usr/bin/env python
 
 # Import packages
+
+# Standard library
 import argparse
 import requests
-import numpy as np
+
+# Data manipulation
+import pandas as pd
+
+# HTML parsing
 from bs4 import BeautifulSoup
+
+# Astropy
 from astropy.table import Table
 
 
@@ -26,30 +34,20 @@ def main() -> None:
         '--url',
         type=str,
         help='DJA URL',
-        default='https://s3.amazonaws.com/msaexp-nirspec/extractions/rubies_prelim_v4',
+        default='https://s3.amazonaws.com/msaexp-nirspec/extractions/rubies_all_extractions_v3',
     )
     parser.add_argument(
-        '--prepend-version',
-        type=str,
-        default='',
-        help='String to prepend to version',
-    )
-    parser.add_argument(
-        '--pid',
-        type=int,
-        default=4233,  # RUBIES PID
-        help='Program ID',
+        '--prepend-version', type=str, default='nod-', help='String to prepend to version'
     )
     args = parser.parse_args()
     url = args.url
     pv = args.prepend_version
-    pid = args.pid
 
     # Download
-    download(url, pv, pid)
+    download(url, pv)
 
 
-def download(url: str, pv: str, pid: int) -> None:
+def download(url: str, pv: str) -> None:
     """
     Download targets from DJA
 
@@ -59,8 +57,6 @@ def download(url: str, pv: str, pid: int) -> None:
         URL to download from
     pv : str
         Prepend version string (reduction type)
-    pid : int
-        Program ID
 
     Returns
     -------
@@ -98,44 +94,33 @@ def download(url: str, pv: str, pid: int) -> None:
         raise ValueError('Failed to download targets from DJA')
 
     # Create table
-    delim = '||'
-    table = Table(
-        np.genfromtxt(
-            [delim.join([str(i) for i in d]) for d in data],
-            delimiter=delim,
-            dtype=None,
-            names=labels,
-            missing_values='None',
-        )
-    )
-    table.rename_column('file_','file')
-
-    # Add program ID
-    table.add_column(pid, name='pid', index=1)
-
-    # Fix comment column
-    bad_comment = np.logical_or(table['comment'] == 'None', table['comment'] == ';')
-    table['comment'][bad_comment] = ''
+    df = pd.DataFrame(data, columns=labels, dtype=None)
+    df = df.apply(lambda col: col.astype('string') if col.dtype == 'object' else col)
 
     # Get rid of all columns after comment
-    table.remove_columns(table.colnames[table.colnames.index('comment') + 1 :])
+    df.drop(df.columns[df.columns.get_loc('comment') + 1 :], axis=1, inplace=True)
 
     # Add columns
-    table.add_columns(
-        np.array([r.split('-') for r in table['root']]).T,
-        names=['survey', 'field', 'reduction'],
-        indexes=[1, 1, 1],
-    )
+    split_columns = df['root'].str.split('-', expand=True)
+    for idx, col in enumerate(['survey', 'field', 'reduction']):
+        df.insert(idx + 1, col, split_columns[idx])
 
     # Add version info to file
-    version = table['reduction']
+    ver = df['reduction']
     for key in ['root', 'file', 'reduction']:
-        table.replace_column(
-            key, [val.replace(ver, pv + ver) for val, ver in zip(table[key], version)]
+        df[key] = df.apply(
+            lambda row, key=key, ver=ver: row[key].replace(
+                ver[row.name], pv + ver[row.name]
+            ),
+            axis=1,
         )
+        df[key] = df[key].astype('string')
+
+    # Fill comment with empty string
+    df['comment'] = df['comment'].fillna('')
 
     # Save table
-    table.write('targets.fits', overwrite=True)
+    Table.from_pandas(df).write('targets.fits', overwrite=True)
 
 
 # Call main function

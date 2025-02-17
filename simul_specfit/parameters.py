@@ -2,12 +2,24 @@
 Compuation of parameter matrices
 """
 
+# Typing
+from typing import Dict, Tuple, List
+
 # Numerical packages
 import numpy as np
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 
-def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
+# Simul Specfit
+from simul_specfit import defaults
+
+
+def configToMatrices(
+    config: dict,
+) -> Tuple[
+    Tuple[List[BCOO], List[BCOO], List[BCOO]],
+    Tuple[jnp.ndarray, List[jnp.ndarray], List[jnp.ndarray]],
+]:
     """
     Convert the configuration to sparse matrices for the model
 
@@ -18,19 +30,23 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
 
     Returns
     -------
-    tuple[BCOO, BCOO, BCOO]
-        Redshift, dispersion, and flux transformation matrice
+    matrices:
+        Tuple of parameter matrices for the model
+    linetypes:
+        Tuple of line types for the model
+
     """
 
     # Keep track of total line index
     i = 0
 
     # Keep track of unique index (i) and index pair (inds) between unique and total
-    i_f, f_inds, fluxes = 0, [], []  # for flux also keep track of the ratio
-    i_z, z_inds = 0, []
-    i_σ, σ_inds = 0, []
+    i_f, f_inds, fluxes = 0, {}, []  # for flux also keep track of the ratio
+    i_z, z_inds = 0, {}
+    i_σ, σ_inds = 0, {}
 
     # Iterate over groups, species, and lines
+    linetypes = []
     for group in config['Groups'].values():
         for species in group['Species']:
             # Check if any fluxes in species are tied
@@ -40,9 +56,12 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
                 i_f += 1  # Increment for not tied fluxes
             # Iterate over lines
             for line in species['Lines']:
+                # Keep track of lineTypes
+                linetypes.append(species['LineType'])
+
                 # Keep track of nonzero matrix elements
-                z_inds.append([i_z, i])
-                σ_inds.append([i_σ, i])
+                z_inds[i] = i_z
+                σ_inds[i] = i_σ
 
                 # Associate line with it's total index
                 line['Index'] = i
@@ -50,11 +69,11 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
                 # If the flux is not tied, increment
                 if line['RelStrength'] is None:
                     fluxes.append(1)
-                    f_inds.append([i_f, i])
+                    f_inds[i] = i_f
                     i_f += 1
                 else:
                     fluxes.append(line['RelStrength'])
-                    f_inds.append([species_f, i])
+                    f_inds[i] = species_f
 
                 # Increment line index
                 i += 1
@@ -71,12 +90,8 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
         if group['Species']:
             i_σ += 1
 
-    # Create Sparce Matrices for Z and F
-    Z = BCOO((jnp.ones(i, int), z_inds), shape=(i_z, i))
-    F = BCOO((fluxes, f_inds), shape=(i_f, i))
-
-    # Iterate again to decouple additional components sigma
-    add_inds = []
+    # Iterate again to find origin for each additional component
+    add_inds = {}
     for group in config['Groups'].values():
         for species in group['Species']:
             for line in species['Lines']:
@@ -85,107 +100,165 @@ def configToMatrices(config: dict) -> tuple[BCOO, BCOO, BCOO]:
                     # Iterate over additional components
                     for comp, dest in species['AdditionalComponents'].items():
                         # Iterate again to find the additional components
-                        for aSpecies in config['Groups'][dest]['Species']:
+                        for addSpecies in config['Groups'][dest]['Species']:
+                            # Ensure additional component matches the species
                             if (
-                                aSpecies['Name'] != species['Name']
-                                or aSpecies['LineType'] != comp
+                                addSpecies['Name'] != species['Name']
+                                or addSpecies['LineType'] != comp
                             ):
                                 continue
-                            for addLine in aSpecies['Lines']:
+
+                            # Iterate until we find the right line
+                            for addLine in addSpecies['Lines']:
                                 if not addLine['Wavelength'] == line['Wavelength']:
                                     continue
-                                add_inds.append([line['Index'], addLine['Index']])
+                                add_inds[addLine['Index']] = line['Index']
 
-    # If no additional components, return
-    if len(add_inds) == 0:
-        # Sparse matrix for sigma
-        Σ = BCOO((jnp.ones(i, int), σ_inds), shape=(i_σ, i))
-        Σadd = jnp.ones((0, i))
-        Σuadd = jnp.ones((0, 0))
-        return F, Z, (Σ, Σadd, Σuadd)
+    # For now, sigma's always decouple from their parent group
+    # Maybe tie this to linetype in the future?
+    # Fluxes can never be tied since we always create a new species for fluxes
+    # z_translation = {}
+    σ_translation = {}
+    for i_add, i_orig in add_inds.items():
+        # Check if we should decouple z
+        # if (z_inds[i_add] == z_inds[i_orig]) and (linetypes[i_add] in []):
+        #     # Update translation to first available index
+        #     if z_inds[i_add] not in z_translation:
+        #         z_translation[z_inds[i_add]] = i_z
+        #         i_z += 1
+        #     # Update link
+        #     z_inds[i_add] = z_translation[z_inds[i_add]]
 
-    # Make from total to unique index
-    unique_map = {i[1]: i[0] for i in σ_inds}
-
-    # Convert first index to unique index
-    uadd_inds = [[unique_map[i[0]], i[1]] for i in add_inds]
-
-    # Check if any add_inds are in σ_inds
-    translation = {}
-    for add_ind in uadd_inds:
-        # If a component is tied within it's group, fix it
-        if add_ind in σ_inds:
-            # Translate the σ index to the next available one
-            # If the initial index is not in translation, add it
-            if add_ind[0] not in translation:
-                translation[add_ind[0]] = i_σ
+        # Check if we should decouple σ
+        if (σ_inds[i_add] == σ_inds[i_orig]) and (True):  # (linetypes[i_add] in []):
+            # Update translation to first available index
+            if σ_inds[i_add] not in σ_translation:
+                σ_translation[σ_inds[i_add]] = i_σ
                 i_σ += 1
-            # Get the relevant σ index
-            σ_ind = σ_inds[σ_inds.index(add_ind)]
-            # Update the inbound σ index
-            σ_ind[0] = translation[σ_ind[0]]
+            # Update link
+            σ_inds[i_add] = σ_translation[σ_inds[i_add]]
 
-    # Get new mapping from total to unique index
-    unique_map = {i[1]: i[0] for i in σ_inds}
-
-    # Get unique indices that go to unique add indices
-    uadd_uinds = np.unique(
-        [[i[0], unique_map[i[1]]] for i in uadd_inds], axis=0
-    ).tolist()
-
-    # Remove the indices that are in add_in
-    σ_inds_nar = [
-        σ_i for i, σ_i in enumerate(σ_inds) if all(i != a[1] for a in add_inds)
-    ]
-    σ_inds_add = [
-        σ_i for i, σ_i in enumerate(σ_inds) if any(i == a[1] for a in add_inds)
+    # Split into the origin components
+    orig = [
+        {i: j for i, j in inds.items() if (i not in add_inds)}
+        for inds in (f_inds, z_inds, σ_inds)
     ]
 
-    # Create sparce matrix from nonempty rows
-    σ_inds_nar, n = noEmptyRows(σ_inds_nar)
-    Σ = BCOO((jnp.ones(len(σ_inds_nar), int), σ_inds_nar), shape=(n, i))
+    # Add additional components that are tied to the origin
+    for o, inds in zip(orig, (f_inds, z_inds, σ_inds)):
+        for key, val in inds.items():
+            if key not in add_inds:
+                continue
+            if val in o.values():
+                o[key] = val
 
-    # Create sparce matrix from nonempty rows
-    σ_inds_add, nadd = noEmptyRows(σ_inds_add)
-    Σadd = BCOO((jnp.ones(len(σ_inds_add), int), σ_inds_add), shape=(nadd, i))
+    # Split into additional components
+    add = [
+        {i: j for i, j in inds.items() if ((i in add_inds) and (j not in o.values()))}
+        for inds, o in zip((f_inds, z_inds, σ_inds), orig)
+    ]
 
-    # Create sparce matrix from nonempty rows
-    uadd_uinds, _ = noEmptyRows(uadd_uinds)
-    uadd_uinds, _ = noEmptyRows([[u[1], u[0]] for u in uadd_uinds])
-    uadd_uinds = [[u[1], u[0]] for u in uadd_uinds]
-    Σuadd = BCOO((jnp.ones(len(uadd_uinds), int), uadd_uinds), shape=(n, nadd))
+    # Don't have to worry about this for fluxes.
+    fluxes_org = [f for i, f in enumerate(fluxes) if i not in add_inds]
+    fluxes_add = [f for i, f in enumerate(fluxes) if i in add_inds]
 
-    return F, Z, (Σ, Σadd, Σuadd)
+    # Re-index unique values after the split
+    orig = [reIndex(oi) for oi in orig]
+    add = [reIndex(oi) for oi in add]
+
+    # Mapping from unique origin indices to unique addition indices
+    orig_add = [
+        {ai[i_add]: oi[i_orig] for i_add, i_orig in add_inds.items() if i_add in ai}
+        for oi, ai in zip(orig, add)
+    ]
+
+    # Convert linetypes to integers
+    linetypes = jnp.array([defaults.LINETYPES[lt] for lt in linetypes])
+
+    # Linetype in original components
+    linetypes_orig = []
+    for o in orig:
+        new_array = np.full(max(o.values()) + 1, -1)
+        for k, v in o.items():
+            if new_array[v] == -1:
+                new_array[v] = linetypes[k]
+        linetypes_orig.append(jnp.array(new_array))
+
+    # Linetype in additional components
+    linetypes_add = []
+    for a in add:
+        if len(a) == 0:
+            linetypes_add.append(jnp.array([]))
+            continue
+        new_array = np.full(max(a.values()) + 1, -1)
+        for k, v in a.items():
+            if new_array[v] == -1:
+                new_array[v] = linetypes[k]
+        linetypes_add.append(jnp.array(new_array))
+
+    # Create flux matrices
+    f_orig = BCOO(
+        (fluxes_org, list(orig[0].items())),
+        shape=(i, max(orig[0].values()) + 1 if len(orig[0]) else 1),
+    ).T
+    f_add = (
+        BCOO((fluxes_add, list(add[0].items())), shape=(i, max(add[0].values()) + 1)).T
+        if len(add[0])
+        else jnp.zeros((0, i))
+    )
+
+    # Create the other matrices
+    orig, add = [
+        [
+            BCOO(
+                (jnp.ones(len(ind), int), list(ind.items())),
+                shape=(i, max(ind.values()) + 1),
+            ).T
+            if len(ind)
+            else jnp.zeros((0, i))
+            for ind in inds
+        ]
+        for inds in (orig[1:], add[1:])
+    ]
+
+    # Concatenate the flux matrices
+    orig = [f_orig] + orig
+    add = [f_add] + add
+
+    # Create the origin to additional matrices
+    orig_add = [
+        BCOO(
+            (jnp.ones(len(ind), int), list(ind.items())), shape=(a.shape[0], o.shape[0])
+        ).T
+        if len(ind)
+        else jnp.zeros((0, o.shape[0]))
+        for ind, o, a in zip(orig_add, orig, add)
+    ]
+
+    return (orig, add, orig_add), (linetypes, linetypes_orig, linetypes_add)
 
 
-def noEmptyRows(indices: list[list[int]]) -> (list[list[int]], int):
+def reIndex(indices: Dict[int, int]) -> Dict[int, int]:
     """
     Remake the indices such that there are no empty rows in the matrix
 
     Get
     Parameters
     ----------
-    indices : list
-        List of indices
+    indices : dict
+        Mapping from total index to unique index
 
     Returns
     -------
-    list
-        Updated list of indices
-    int
-        Number of non-zero rows
+    dict
+        Updating mapping
     """
 
-    # Step 1: Extract unique row indices (non-empty rows)
-    non_zero_rows = sorted(
-        set(row for row, _ in indices)
-    )  # Unique rows with non-zero values
+    # Get set of unique indices
+    uinds = set(indices.values())
 
-    # Step 2: Create a mapping from old row indices to new contiguous row indices
-    row_map = {old: new for new, old in enumerate(non_zero_rows)}
+    # Make the translation
+    translation = {ui: i for ui, i in zip(uinds, range(len(uinds)))}
 
-    # Step 3: Remap the row indices using the mapping
-    new_indices = [[row_map[row], col] for row, col in indices]
-
-    # Step 4: Return the new indices and the number of non-zero rows
-    return new_indices, len(non_zero_rows)
+    # Translate
+    return {i: translation[j] for i, j in indices.items()}

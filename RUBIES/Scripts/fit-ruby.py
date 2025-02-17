@@ -23,7 +23,8 @@ def main():
     parser = argparse.ArgumentParser(description='Fit Ruby')
     parser.add_argument('config', type=str, help='Config')
     parser.add_argument('root', type=str, help='Root')
-    parser.add_argument('srcid', type=int, help='Source ID')
+    parser.add_argument('uid', type=int, help='Source ID')
+    parser.add_argument('--catalog', type=str, help='Catalog file', default='RUBIES/Targets/targets.fits')
     args = parser.parse_args()
 
     # Load config from JSON file
@@ -36,9 +37,9 @@ def main():
             os.makedir(d)
 
     # Load targets
-    targets = Table.read('RUBIES/Targets/targets.fits')
+    targets = Table.read(args.catalog)
     rows = targets[
-        np.logical_and(targets['root'] == args.root, targets['srcid'] == args.srcid)
+        np.logical_and(targets['root'] == args.root, targets['uid'] == args.uid)
     ]
 
     # Process

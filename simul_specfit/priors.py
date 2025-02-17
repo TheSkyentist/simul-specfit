@@ -2,75 +2,114 @@
 Module for defining the priors for the model parameters
 """
 
+# Typing
+from typing import Optional
+
 # JAX packages
 from jax import numpy as jnp
 
 # Bayesian Inference
 from numpyro import distributions as dist
 
+# Simul Specfit
+from simul_specfit import defaults
 
-# Uniform prior for the redshift
-def redshift_prior(
-    z0: float, δz: float = 0.005, line_type: str = 'narrow'
+# Convert Prior dictionaries to Arrays
+flux = defaults.convertToArray(defaults.flux)
+redshift = defaults.convertToArray(defaults.redshift)
+fwhm = defaults.convertToArray(defaults.fwhm)
+
+
+def fwhm_prior(
+    linetypes: jnp.ndarray, orig: Optional[jnp.ndarray] = None
 ) -> dist.Distribution:
     """
-    Return a uniform prior for the redshift z0 with a width of δz
+    Return a fwhm prior based on the linetype
 
     Parameters
     ----------
-    z0 : float
-        Initial redshift value
-    δz : float, optional
-        (Half) Width of the prior
-    line_type : str, optional
-        Type of line to be used, narrow is assumed by default
-        Currently does not affect the redshift prior
+    linetypes : jnp.ndarray
+        Integer array of line types
+    orig : jnp.ndarray, optional
+        Original values for additional lines
 
     Return
     ------
     dist.Distribution
-        Prior distribution for the redshift
+        Prior distribution
     """
 
-    return dist.Uniform(low=z0 - δz, high=z0 + δz)
+    # Get the low and high bounds
+    low, high = fwhm[linetypes].T
 
-
-def fwhm_prior(low=0, high=1000) -> dist.Distribution:
-    """
-    Return a uniform prior for the velocity dispersion fwhm
-
-    Parameters
-    ----------
-    low : float or jnp.ndarray, optional
-        Lower bound of the prior
-    high : float or jnp.ndarray, optional
-        Upper bound of the prior
-
-    Return
-    ------
-    dist.Distribution
-        Prior distribution for the velocity dispersion fwhm
-    """
+    # If there are original values, set the low and high bounds
+    if orig is not None:
+        # Broad line must be 100 km/s higher than the original
+        low = jnp.where(
+            jnp.logical_or(
+                linetypes == defaults.LINETYPES['broad'],
+                linetypes == defaults.LINETYPES['cauchy'],
+            ),
+            orig + 100,
+            low,
+        )
 
     return dist.Uniform(low=low, high=high)
 
 
-def flux_prior(flux_guess: float) -> dist.Distribution:
+def redshift_prior(
+    linetypes: jnp.ndarray, orig: Optional[jnp.ndarray] = None
+) -> dist.Distribution:
     """
-    Return a uniform prior for the flux of the line up to 2 times the initial guess
+    Return a redshift prior based on the linetype
 
     Parameters
     ----------
-    flux_guess : float
-        Initial guess for the flux of the line
+    linetypes : jnp.ndarray
+        Integer array of line types
+    orig : jnp.ndarray, optional
+        Original values for additional lines
 
     Return
     ------
     dist.Distribution
-        Prior distribution for the flux of the line
+        Prior distribution
     """
 
-    return dist.Uniform(low=-1.5 * flux_guess, high=1.5 * flux_guess)
+    # Get the low and high bounds
+    low, high = redshift[linetypes].T
+
+    # If there are original values, set the low and high bounds
+    if orig is not None:
+        # Outflow line must be blueshifted relative to the original
+        high = jnp.where(linetypes == defaults.LINETYPES['outflow'], orig, high)
+
+    return dist.Uniform(low=low, high=high)
+
+
+def flux_prior(
+    linetypes: jnp.ndarray, orig: Optional[jnp.ndarray] = None
+) -> dist.Distribution:
+    """
+    Return a flux prior based on the linetype
+
+    Parameters
+    ----------
+    linetypes : jnp.ndarray
+        Integer array of line types
+    orig : jnp.ndarray, optional
+        Original values for additional lines
+
+    Return
+    ------
+    dist.Distribution
+        Prior distribution
+    """
+
+    # Get the low and high bounds
+    low, high = flux[linetypes].T
+
+    return dist.Uniform(low=low, high=high)
 
 
 def angle_prior() -> dist.Distribution:

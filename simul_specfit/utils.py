@@ -2,6 +2,9 @@
 Utility Functions
 """
 
+# Typing
+from typing import List
+
 # Import packages
 import copy
 
@@ -18,7 +21,7 @@ from simul_specfit.spectra import Spectra
 
 def restrictConfig(
     config: dict, spectra: Spectra, linedet: u.Quantity = defaults.LINEDETECT
-) -> list:
+) -> List:
     """
     Restrict the configuration to only include lines that are covered by the spectra
 
@@ -106,10 +109,11 @@ def restrictConfig(
     # Return the updated config
     return config
 
+
 # TODO: Maybe start with what we have from GELATO?
-def validateConfig(config:dict) -> None:
+def validateConfig(config: dict) -> None:
     """
-    Validate configution file is valid. 
+    Validate configution file is valid.
     Will raise and error if it is not
 
     Parameters
@@ -122,6 +126,6 @@ def validateConfig(config:dict) -> None:
     None
     """
     if False:
-        raise # What kind of error?
+        raise  # What kind of error?
         exit(1)
     return

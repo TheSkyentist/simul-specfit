@@ -25,6 +25,7 @@ def main():
     # Parse arguements
     parser = argparse.ArgumentParser(description='Fit Rubies')
     parser.add_argument('config', type=str, help='Configuration file')
+    parser.add_argument('--catalog', type=str, help='Catalog file', default='RUBIES/Targets/targets.fits')
     parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=mp.cpu_count())
     args = parser.parse_args()
 
@@ -38,16 +39,16 @@ def main():
             os.makedir(d)
 
     # Load targets
-    targets = Table.read('RUBIES/Targets/targets.fits')
+    targets = Table.read(args.catalog)
 
     # Get unique targets
-    unique_targets = np.unique(targets['root', 'srcid'])
+    unique_targets = np.unique(targets['root', 'uid'])
 
     # Get rows
     allrows = []
     for u in unique_targets:
         good = np.logical_and(
-            targets['srcid'] == u['srcid'], targets['root'] == u['root']
+            targets['uid'] == u['uid'], targets['root'] == u['root']
         )
 
         # Get the rows
@@ -64,7 +65,7 @@ def process(rows, config):
     try:
         RubiesFit(config, rows)
     except Exception as e:
-        print(rows[0]['root', 'srcid'], e)
+        print(rows[0]['root', 'uid'], e)
 
 
 if __name__ == '__main__':

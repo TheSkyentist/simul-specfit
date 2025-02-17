@@ -3,7 +3,7 @@ Multi-Spectrum Model
 """
 
 # Standard Imports
-from typing import Final
+from typing import Final, Tuple, List
 
 # Astropy
 from astropy import units as u, constants as consts
@@ -16,8 +16,8 @@ from jax.experimental.sparse import BCOO
 from numpyro import plate, sample, deterministic as determ, distributions as dist
 
 # Simul-SpecFit
-from simul_specfit import priors, optimized
 from simul_specfit.spectra import Spectra
+from simul_specfit import priors, optimized, defaults
 from simul_specfit.calibration import RubiesCalibration
 
 # Speed of light
@@ -27,9 +27,8 @@ C: Final[float] = consts.c.to(u.km / u.s).value
 # Define the model
 def multiSpecModel(
     spectra: Spectra,
-    F: BCOO,
-    Z: BCOO,
-    Σs: tuple[BCOO, BCOO, BCOO],
+    matrices: Tuple[List[BCOO], List[BCOO], List[BCOO]],
+    linetypes_all: Tuple[jnp.ndarray, List[jnp.ndarray], List[jnp.ndarray]],
     line_centers: jnp.ndarray,
     line_guesses: jnp.ndarray,
     cont_regs: jnp.ndarray,
@@ -42,12 +41,10 @@ def multiSpecModel(
     ----------
     spectra : Spectra
         Spectra to fit
-    F : BCOO
-        Flux matrix
-    Z : BCOO
-        Redshift matrix
-    Σs : BCOO, BCOO, BCOO
-        Width matrices
+    matrices : Tuple[List[BCOO], List[BCOO], List[BCOO]]
+        Parameter Matrices
+    linetypes_all : Tuple[jnp.ndarray, List[jnp.ndarray], List[jnp.ndarray]]
+        Line Type Arrays
     line_centers : jnp.ndarray
         Line centers
     line_guesses : jnp.ndarray
@@ -61,7 +58,70 @@ def multiSpecModel(
     -------
     None
     """
-    
+
+    # Build Spectrum Calibration
+    calib = RubiesCalibration(spectra.names, spectra.fixed)
+
+    # Unpack matrices
+    orig, add, orig_add = matrices
+
+    # Unpack line types
+    linetypes, lts_orig, lts_add = linetypes_all
+
+    # Keep track of whether the line is a Voigt profile
+    is_voigt = linetypes == defaults.LINETYPES['cauchy']
+
+    # Build the original parameters
+    params = {}
+    all_ps = (
+        ('flux', priors.flux_prior),
+        ('redshift', priors.redshift_prior),
+        ('fwhm', priors.fwhm_prior),
+    )
+    for i, (M_orig, lt_orig, M_add, lt_add, M_orig_add, p) in enumerate(
+        zip(orig, lts_orig, add, lts_add, orig_add, all_ps)
+    ):
+        # Unpack prior
+        label, prior = p
+
+        # Plate over the original parameters
+        N_orig = M_orig.shape[0]
+        with plate(f'N_{label}_orig = {N_orig}', N_orig):
+            # Create the original parameters
+            p_orig = sample(f'{label}_orig', prior(lt_orig))
+
+        # Plate over the additional parameters
+        N_add = M_add.shape[0]
+        if N_add:
+            with plate(f'N_{label}_add = {N_add}', N_add):
+                # Create the additional parameters
+                p_add = sample(f'{label}_add', prior(lt_add, p_orig))
+
+            # Broadcast the parameters and sum
+            params[label] = p_orig @ M_orig + p_add @ M_add
+        else:
+            # Broadcast the parameters
+            params[label] = p_orig @ M_orig
+
+    # Add initial flux guesses
+    if len(add[0]):
+        fo, fa = jnp.where(orig[0].todense(), 1, 0), jnp.where(add[0].todense(), 1, 0)
+        f_init = (fo @ line_guesses @ fo) + (fa @ line_guesses @ fa)
+    else:
+        fo = jnp.where(orig[0].todense(), 1, 0)
+        f_init = fo @ line_guesses @ fo
+    fluxes = determ('flux_all', params['flux'] * f_init)
+
+    # Add initial redshift
+    redshift = determ('redshift_all', params['redshift'] + spectra.redshift_initial)
+    oneplusz = 1 + redshift
+
+    # Get centers at the wavelength
+    centers = line_centers * oneplusz
+
+    # Transform fwhms into wavelength units
+    fwhms = centers * determ('fwhm_all', params['fwhm']) / C
+
     # Plate over the continua
     Nc = len(cont_regs)  # Number of continuum regions
     with plate(f'Nc = {Nc}', Nc):
@@ -73,61 +133,6 @@ def multiSpecModel(
 
         # Continuum offsets
         offsets = sample('cont_offset', priors.height_prior(cont_guesses))
-
-    # Build Spectrum Calibratsion
-    calib = RubiesCalibration(spectra.names, spectra.fixed)
-
-    # Plate for fluxes
-    Nf = F.shape[0]  # Number of independent fluxes
-    with plate(f'Nf = {Nf}', Nf):
-        # Sample fluxes
-        fluxes = sample('f', priors.flux_prior(jnp.ones_like(F) @ line_guesses))
-
-        # Broadcast fluxes
-        fluxes = determ('f_all', fluxes @ F)
-
-    # Plate for redshifts
-    Nz = Z.shape[0]  # Number of independent redshifts
-    with plate(f'Nz = {Nz}', Nz):
-        # Sample redshifts
-        redshift = sample('z', priors.redshift_prior(spectra.redshift_initial))
-        oneplusz = 1 + determ('z_all', redshift @ Z)
-
-        # Broadcast redshifts and compute centers
-        centers = line_centers * oneplusz
-
-    # Unpack the width matrices
-    Σ, Σadd, Σuadd = Σs
-
-    # Plate for fwhms
-    Nw = Σ.shape[0]  # Number of independent narrow fwhms
-    with plate(f'Nw = {Nw}', Nw):
-        # Sample fwhms
-        fwhms = sample('fwhm', priors.fwhm_prior())
-
-        # Broadcast fwhms
-        all_fwhms = fwhms @ Σ
-
-    # If there are additional fwhms, plate over them
-    if Σadd.shape[0]:
-        # Plate for additional fwhms
-        Nwadd = Σadd.shape[0]  # Number of independent additional fwhms
-        with plate(f'Nw_add = {Nwadd}', Nwadd):
-            # Create lower bounds for initial fwhms
-            fwhms_add_lower = fwhms @ Σuadd
-
-            # Sample additional fwhms
-            # Ideally encapsulate this to be dependent on the line type later!
-            fwhms_add = sample(
-                'fwhm_add', priors.fwhm_prior(low=fwhms_add_lower + 100, high=5000)
-            )
-            all_fwhms_add = fwhms_add @ Σadd
-
-            # Combine the fwhms
-            all_fwhms = all_fwhms + all_fwhms_add
-
-    # Transform fwhms into wavelength units
-    fwhms = centers * determ('fwhm_all', all_fwhms) / C
 
     # Compute equivalent widths
     linecont = optimized.linearContinua(
@@ -154,19 +159,10 @@ def multiSpecModel(
         # determ(f'{spectrum.name}_z_all', (centers_shift / line_centers) - 1)
 
         # Get the LSF of the lines
-        fwhms_lsf = spectrum.lsf(centers, lsf_scale)
-
-        # Broad lines
-        broad = jnp.any(Σadd.todense(), 0)
+        fwhms_lsf = determ(f'{spectrum.name}_lsf', spectrum.lsf(centers, lsf_scale))
 
         # Integrate pixels (note, this is total integral, not a density)
-        pixints = jnp.where(
-            broad,
-            optimized.integrateVoigt(low, high, centers, fwhms_lsf, fwhms),
-            optimized.integrateGaussian(
-                low, high, centers, jnp.sqrt(jnp.square(fwhms_lsf) + jnp.square(fwhms))
-            ),
-        )
+        pixints = optimized.integrate(low, high, centers, fwhms_lsf, fwhms, is_voigt).T
 
         # Divide by bin width to compute flux density
         fλ = pixints / (high - low)[:, jnp.newaxis]
@@ -189,106 +185,3 @@ def multiSpecModel(
 
         # Compute likelihood
         sample(f'{spectrum.name}', dist.Normal(model, err), obs=flux)
-
-
-# Define the model
-def plotMultiSpecModel(
-    spectra: Spectra,
-    Z: BCOO,
-    Σ: BCOO,
-    F: BCOO,
-    line_centers: jnp.ndarray,
-    line_guesses: jnp.ndarray,
-    cont_regs: jnp.ndarray,
-    cont_guesses: jnp.ndarray,
-) -> None:
-    """
-    Multi-Spectrum Model
-
-    Parameters
-    ----------
-    spectra : Spectra
-        Spectra to fit
-    Z : BCOO
-        Redshift matrix
-    Σ : BCOO
-        Width matrix
-    F : BCOO
-        Flux matrix
-    line_centers : jnp.ndarray
-        Line centers
-    line_guesses : jnp.ndarray
-        Line guesses
-    cont_regs : jnp.ndarray
-        Continuum regions
-    cont_guesses : jnp.ndarray
-        Continuum guesses
-
-    Returns
-    -------
-    None
-    """
-
-    # Redshift the continuum regions
-    continuum_regions = cont_regs * (1 + spectra.redshift_initial)
-
-    # Plate over the continua
-    Nc = len(continuum_regions)  # Number of continuum regions
-    with plate(f'Continua (N = {Nc})', Nc):
-        # Continuum Parameters
-        angles = sample('θ', priors.angle_prior())
-        offsets = sample('Fλ', priors.height_prior(cont_guesses))
-        cont = determ('Linear Continuum', angles + offsets).mean()
-
-    cont = determ('Total Continuum', cont)
-
-    # Plate for redshifts
-    Nz = Z.shape[0]  # Number of independent redshifts
-    with plate(f'Redshifts (N = {Nz})', Nz):
-        # Sample redshifts
-        redshift = sample('z', priors.redshift_prior(spectra.redshift_initial))
-        redshift = redshift @ Z
-
-    # Plate for fwhms
-    Nw = Σ.shape[0]  # Number of independent fwhms
-    with plate(f'Dispersions (N = {Nw})', Nw):
-        # Sample fwhms
-        fwhms = sample('fwhm', priors.fwhm_prior())
-        fwhms = fwhms @ Σ
-
-    # Plate for fluxes
-    Nf = F.shape[0]  # Number of independent fluxes
-    with plate(f'Fluxes (N = {Nf})', Nf):
-        # Sample fluxes
-        fluxes = sample('f', priors.flux_prior(F @ line_guesses))
-        fluxes = fluxes @ F
-
-    # Plate over the lines
-    Nl = len(line_centers)  # Number of lines
-    with plate(f'Lines (N = {Nl})', Nl):
-        lines = determ('Lines', redshift + fwhms + fluxes).mean()
-        determ('Equivalent Width', fluxes + cont)
-
-    # LSF Scale
-    lsf_scale = sample('LSF Scale', priors.lsf_scale_prior()).mean()
-
-    # Plate for spectra
-    Nspec = len(spectra.spectra)  # Number of spectra
-    with plate(f'Spectra (N = {Nspec})', Nspec, dim=-1):
-        # Get the calbrations
-        flux_scale = sample('Flux Scale', priors.flux_scale_prior()).mean()
-        pixel_offset = sample('Pixel Offsets', priors.pixel_offset_prior()).mean()
-        λ = jnp.ones(1000)  # Faux wavelength grid
-
-        with plate('λ', len(λ), dim=-2):
-            # Compute the continuum model
-            c = determ('Continuum Model', cont + pixel_offset)
-
-            # Compute the line model
-            li = determ('Lines Model', lines + lsf_scale + pixel_offset)
-
-            # Compute the model
-            model = determ('Total Model', flux_scale + c + li)
-
-            # Compute the likelihood
-            sample('Observations', dist.Normal(model, 1), obs=1)

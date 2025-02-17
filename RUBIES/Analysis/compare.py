@@ -10,10 +10,10 @@ zf = zf[zf.colnames[9:]]
 
 # Read REH Fluxes
 rf = Table.read('RUBIES/Results/REH-simul.fits')
-rf['srcid'] = rf['srcid'].astype(int)
+rf['uid'] = rf['uid'].astype(int)
 
-# Join tables on srcid and root
-joined = join(rf, zf, keys=['srcid', 'root'])
+# Join tables on uid and root
+joined = join(rf, zf, keys=['uid', 'root'])
 
 # Plot Ha Fluxes
 fig, axes = pyplot.subplots(

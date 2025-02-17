@@ -2,6 +2,12 @@
 Fitting functions for spectral data
 """
 
+# Standard library
+import re
+
+# Typing
+from typing import Dict, Tuple
+
 # Astropy packages
 import astropy.units as u
 from astropy.io import fits
@@ -23,7 +29,7 @@ from simul_specfit.spectra import RubiesSpectra
 from simul_specfit import utils, initial, parameters
 
 
-def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC'):
+def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
     # Get the model arguments
     config, model_args = RUBIESModelArgs(config, rows)
 
@@ -44,7 +50,7 @@ def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC'):
     saveResults(config, rows, model_args, samples, extras)
 
 
-def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
+def RUBIESModelArgs(config: dict, rows: Table) -> Tuple:
     """
     Get the model arguments for the RUBIES data.
 
@@ -71,12 +77,16 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
     if len(config['Groups']) == 0:
         raise ValueError('No Line Coverage')
 
-    # Get what we need for fitting
-    F, Z, Σs = parameters.configToMatrices(config)
-    line_centers, line_guesses = initial.linesFluxesGuess(config, spectra)
+    # Generate Parameter Matrices
+    matrices, linetypes_all = parameters.configToMatrices(config)
 
-    # Get continuum regions
+    # Compute Continuum Regions and Initial Guesses
     cont_regs, cont_guesses = initial.computeContinuumRegions(config, spectra)
+
+    # Compute Line Centers and Initial Guesses
+    line_centers, line_guesses = initial.linesFluxesGuess(
+        config, spectra, cont_regs, cont_guesses
+    )
 
     # Restrict spectra to continuum regions and rescale errorbars in each region
     spectra.restrictAndRescale(config, cont_regs)
@@ -88,9 +98,8 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
     # Model Args
     return config, (
         spectra,
-        F,
-        Z,
-        Σs,
+        matrices,
+        linetypes_all,
         line_centers,
         line_guesses,
         cont_regs,
@@ -100,7 +109,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> tuple:
 
 def MCMCFit(
     model_args: tuple, rng_key: random.PRNGKey, N: int = 500
-) -> tuple[dict, dict]:
+) -> Tuple[Dict, Dict]:
     """
     Fit the RUBIES data with MCMC.
 
@@ -123,18 +132,25 @@ def MCMCFit(
     # Get the samples
     samples = mcmc.get_samples()
 
-    # Compute the WAIC
+    # Compute the log likelihood
     logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
+    for k, v in logLs.items():
+        samples[k] = v
     logL = np.hstack([p for p in logLs.values()])  # Likelihood Matrix
-    waic = -2 * (np.log(np.exp(logL).mean(axis=0)).sum() - logL.var(axis=0).sum())
-    extras = {'WAIC': [waic]}
+    samples['logL'] = logL.sum(1)
+
+    # Compute the WAIC
+    waic = -2 * (
+        np.log(np.exp(logL).mean(axis=0)).sum() - logL.var(axis=0, ddof=1).sum()
+    )
+    extras = {'WAIC': waic}
 
     return samples, extras
 
 
 def NSFit(
     model_args: tuple, rng_key: random.PRNGKey, N: int = 1000
-) -> tuple[dict, dict]:
+) -> Tuple[Dict, Dict]:
     """
     Fit the RUBIES data with Nested Sampling.
 
@@ -172,11 +188,14 @@ def NSFit(
     # Get the sample
     samples = NS.get_samples(rng_key, N)
 
+    # Compute the log likelihood
+    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
+    for k, v in logLs.items():
+        samples[k] = v
+    samples['logL'] = np.hstack([p for p in logLs.values()]).sum(1)
+
     # Add log evidence to samples
-    extras = {
-        'log_Z': [NS._results.log_Z_mean],
-        'log_Z_err': [NS._results.log_Z_uncert],
-    }
+    extras = {'log_Z': NS._results.log_Z_mean, 'log_Z_err': NS._results.log_Z_uncert}
 
     return samples, extras
 
@@ -186,10 +205,10 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
     cname = '_' + config['Name'] if config['Name'] else ''
 
     # Unpack model args
-    spectra, _, _, _, _, _, _, _ = model_args
+    spectra, _, _, _, _, _, _ = model_args
 
     # Correct sample units
-    samples['f_all'] = samples['f_all'] * (spectra.fλ_unit * spectra.λ_unit).to(
+    samples['flux_all'] = samples['flux_all'] * (spectra.fλ_unit * spectra.λ_unit).to(
         u.Unit(1e-20 * u.erg / (u.cm * u.cm * u.s))
     )
     samples['ew_all'] = samples['ew_all'] * spectra.λ_unit.to(u.AA)
@@ -206,19 +225,25 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Save all samples as npz
     np.savez(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_full.npz',
+        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["uid"]}{cname}_full.npz',
         **samples,
     )
 
     # Get names of the lines
+    # TODO: Better sanitization of line names?
     line_names = [
-        f'{species["Name"]}-{species["LineType"]}-{line["Wavelength"]}'
+        re.sub(
+            r'[\[\]]',
+            '',
+            f'{species["Name"]}_{species["LineType"]}_{line["Wavelength"]}',
+        )
         for _, group in config['Groups'].items()
         for species in group['Species']
         for line in species['Lines']
     ]
-    for sampname, colname, unit in zip(
-        ['z', 'f', 'fwhm', 'ew'],
+
+    # Append line parameter samples
+    for colname, unit in zip(
         ['redshift', 'flux', 'fwhm', 'ew'],
         [
             u.dimensionless_unscaled,
@@ -227,18 +252,34 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
             u.AA,
         ],
     ):
-        data = np.array(samples[f'{sampname}_all'].T.tolist()) * unit
+        data = np.array(samples[f'{colname}_all'].T.tolist()) * unit
         out_part = Table(data.T, names=[f'{line}_{colname}' for line in line_names])
         out = hstack([out, out_part])
 
-    # Create table from extras
-    extra = Table(extras)
+    # Append LSF samples
+    for spectrum in spectra.spectra:
+        data = np.array(samples[f'{spectrum.name}_lsf'].T.tolist()) * spectra.λ_unit
+        out_part = Table(
+            data.T, names=[f'{spectrum.name}_{line}_lsf' for line in line_names]
+        )
+        out = hstack([out, out_part])
+
+    # Append logLs
+    out['logL'] = np.sum(
+        [samples[f'{spectrum.name}'].sum(1) for spectrum in spectra.spectra], axis=0
+    )
 
     # Create HDUList
-    hdul = fits.HDUList(
-        [fits.PrimaryHDU(), fits.BinTableHDU(out), fits.BinTableHDU(extra)]
-    )
+    hdul = fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(out)])
+
+    # Add the extras to the header
+    for k, v in extras.items():
+        if v == np.inf:
+            v = 'inf'
+        hdul[1].header[k] = v
+
+    # Save the summary
     hdul.writeto(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.fits',
+        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["uid"]}{cname}_summary.fits',
         overwrite=True,
     )

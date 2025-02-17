@@ -48,7 +48,7 @@ def erfcond(good: jnp.ndarray, sigma: jnp.ndarray) -> jnp.ndarray:
         Conditional vectorized erf
     """
 
-    return vmap(vmap(lambda b, λ: lax.cond(b, erf, lambda x: 0.0, λ)))(good, sigma)
+    return vmap(lambda b, λ: lax.cond(b, erf, lambda x: 0.0, λ))(good, sigma)
 
 
 @jit
@@ -89,8 +89,8 @@ def integrateGaussian(
     invfwhms = 1 / (fwhms * FWHM_TO_SIGMA)
 
     # Compute residual
-    low_resid = (low_edge[:, jnp.newaxis] - centers) * invfwhms
-    high_resid = (high_edge[:, jnp.newaxis] - centers) * invfwhms
+    low_resid = (low_edge - centers) * invfwhms
+    high_resid = (high_edge - centers) * invfwhms
 
     # Restrict to only those that won't compute to zero
     good = jnp.logical_and(-threshold < low_resid, high_resid < threshold)
@@ -134,8 +134,8 @@ def integrateCauchy(
     invhwhms = 2 / fwhms
 
     # Compute residual
-    low_resid = (low_edge[:, jnp.newaxis] - centers) * invhwhms
-    high_resid = (high_edge[:, jnp.newaxis] - centers) * invhwhms
+    low_resid = (low_edge - centers) * invhwhms
+    high_resid = (high_edge - centers) * invhwhms
 
     # Compute Pixel integral with arctan
     pixel_ints = (jnp.arctan(high_resid) - jnp.arctan(low_resid)) / jnp.pi
@@ -177,19 +177,11 @@ def integrateVoigt(
 
     # Calculate FWHM for pseudo-Voigt components
     powers = jnp.arange(len(MAGIC_FWHM))
-    fwhm = jnp.sum(
-        MAGIC_FWHM
-        * (fwhm_g[:, jnp.newaxis] ** powers)
-        * (fwhm_γ[:, jnp.newaxis] ** powers[::-1]),
-        axis=1,
-    ) ** (1 / 5)
+    fwhm = jnp.sum(MAGIC_FWHM * (fwhm_g**powers) * (fwhm_γ ** powers[::-1])) ** (1 / 5)
 
     # Compute contribution fraction for Pseudo-Voigt
     fwhm_ratio = fwhm_γ / fwhm
-    η = jnp.sum(
-        MAGIC_ETA * (fwhm_ratio[:, jnp.newaxis] ** jnp.arange(1, len(MAGIC_ETA) + 1)),
-        axis=1,
-    )
+    η = jnp.sum(MAGIC_ETA * (fwhm_ratio ** jnp.arange(1, len(MAGIC_ETA) + 1)))
 
     # Compute components
     L = η * integrateCauchy(low_edge, high_edge, centers, fwhm)
@@ -200,7 +192,95 @@ def integrateVoigt(
 
 
 @jit
-def linearContinua(λ, cont_centers, angles, offsets, continuum_regions):
+def integrateCond(
+    low: jnp.ndarray,
+    high: jnp.ndarray,
+    center: jnp.ndarray,
+    lsf: jnp.ndarray,
+    fwhm: jnp.ndarray,
+    is_voigt: jnp.ndarray,
+) -> jnp.ndarray:
+    """
+    Integrate a single emission line profile (either Voigt or Gaussian)
+    depending on whether the line is broad.
+
+    Parameters
+    ----------
+    low : jnp.ndarray
+        Low edge of the bin
+    high : jnp.ndarray
+        High edge of the bin
+    center : jnp.ndarray
+        Center of the emission line
+    lsf : jnp.ndarray
+        Line spread function
+    fwhm : jnp.ndarray
+        Full width at half maximum
+    is_voigt : jnp.ndarray
+        Whether the line is Voigt
+
+    Returns
+    -------
+    jnp.ndarray
+        Integral across wavelenths
+    """
+    return lax.cond(
+        is_voigt,
+        lambda _: integrateVoigt(low, high, center, lsf, fwhm),
+        lambda _: integrateGaussian(low, high, center, jnp.sqrt(lsf**2 + fwhm**2)),
+        operand=None,  # No extra operand needed
+    )
+
+
+@jit
+def integrate(
+    low: jnp.ndarray,
+    high: jnp.ndarray,
+    cent: jnp.ndarray,
+    lsf: jnp.ndarray,
+    fwhm: jnp.ndarray,
+    is_voigt: jnp.ndarray,
+) -> jnp.ndarray:
+    """
+    Integrate N emission lines over λ bins.
+    Returns a matrix of integrals in each bin for each line.
+    Uses Voigt profile if broad, otherwise Gaussian.
+
+    Parameters
+    ----------
+    low : jnp.ndarray
+        Low edge of the bin
+    high : jnp.ndarray
+        High edge of the bin
+    center : jnp.ndarray
+        Center of the emission line
+    lsf : jnp.ndarray
+        Line spread function
+    fwfm : jnp.ndarray
+        Full width at half maximum
+    is_broad : jnp.ndarray
+        Whether the line is broad
+
+    Returns
+    -------
+    jnp.ndarray
+        Integral across wavelenths
+    """
+    # Vectorize the integration across the lines
+    vectorized_integrate = vmap(integrateCond, in_axes=(None, None, 0, 0, 0, 0))
+
+    # Perform the integration for all lines
+    return vectorized_integrate(low, high, cent, lsf, fwhm, is_voigt)
+
+
+@jit
+def linearContinua(
+    λ: jnp.ndarray,
+    cont_centers: jnp.ndarray,
+    angles: jnp.ndarray,
+    offsets: jnp.ndarray,
+    continuum_regions: jnp.ndarray,
+) -> jnp.ndarray:
     """
     Compute the linear model
 

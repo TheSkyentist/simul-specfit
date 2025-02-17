@@ -20,8 +20,16 @@
                         "absorption" : "Absorption"
                      },
                     "Lines": [
+                        {"Wavelength": 6564.61, "RelStrength": null}
+                    ]
+                },
+                {
+                    "Name": "HI",
+                    "AdditionalComponents": {
+                        "cauchy" : "Broad"
+                     },
+                    "Lines": [
                         {"Wavelength": 4862.68, "RelStrength": null},
-                        {"Wavelength": 6564.61, "RelStrength": null},
                         {"Wavelength": 10052.6, "RelStrength": null},
                         {"Wavelength": 10941.17, "RelStrength": null}
 
@@ -37,14 +45,17 @@
                 {
                     "Name": "[OIII]",
                     "Lines": [
-                        {"Wavelength": 4960.295, "RelStrength": 1},
-                        {"Wavelength": 5008.24, "RelStrength": 2.98}
+                        {"Wavelength": 5008.24, "RelStrength": 2.98},
+                        {"Wavelength": 4960.295, "RelStrength": 1}
                     ]
                 },
                 {
                     "Name": "HeI",
+                    "AdditionalComponents": {
+                        "cauchy" : "Broad"
+                    },
                     "Lines": [
-                        {"Wavelength": 10833.3, "RelStrength": null}
+                        {"Wavelength": 	10833.3, "RelStrength": null}
                     ]
                 }
             ]

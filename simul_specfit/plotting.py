@@ -45,7 +45,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     cname = '_' + config['Name'] if config['Name'] else ''
 
     # Unpack model arguements
-    spectra, _, _, _, line_centers, _, cont_regs, _ = model_args
+    spectra, _, _, line_centers, _, cont_regs, _ = model_args
 
     # Get the number of spectra and regions
     Nspec, Nregs = len(spectra.spectra), len(cont_regs)
@@ -120,16 +120,16 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
 
     # Set superlabels
     fig.supylabel(
-        f'Flux [{spectrum.fλ_unit.to_string(format="latex", fraction=False)}]'
+        rf'$f_\lambda$ [{spectrum.fλ_unit.to_string(format="latex", fraction=False)}]'
     )
     fig.supxlabel(
-        f'Wavelength (Observed) [{spectrum.λ_unit.to_string(format="latex", fraction=False)}]',
+        rf'$\lambda$ (Observed) [{spectrum.λ_unit.to_string(format="latex", fraction=False)}]',
         y=-0.01,
         va='center',
         fontsize='medium',
     )
     fig.suptitle(
-        f'Wavelength (Rest) [{spectrum.λ_unit:latex_inline}]',
+        rf'$\lambda$ (Rest) [{spectrum.λ_unit:latex_inline}]',
         y=1.015,
         va='center',
         fontsize='medium',
@@ -137,7 +137,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     fig.text(
         0.5,
         1.05,
-        f'{rows[0]["srcid"]} ({rows[0]["root"]}): $z = {spectrum.redshift_initial:.3f}$',
+        f'{rows[0]["uid"]} ({rows[0]["root"]}): $z = {spectrum.redshift_initial:.3f}$',
         ha='center',
         va='center',
         fontsize='large',
@@ -146,7 +146,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     # Show the plot
     fig.savefig(
         os.path.join(
-            'RUBIES/Plots', f'{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_fit.pdf'
+            'RUBIES/Plots', f'{rows[0]["root"]}-{rows[0]["uid"]}{cname}_fit.pdf'
         )
     )
     pyplot.close(fig)
@@ -172,7 +172,7 @@ def plotLines(ax, config, model_args) -> None:
     """
 
     # Unpack model arguements
-    spectra, _, _, _, _, _, _, _ = model_args
+    spectra, _, _, _, _, _, _ = model_args
     oneplusz = 1 + spectra.redshift_initial
 
     # Get axis xlim and ylim
