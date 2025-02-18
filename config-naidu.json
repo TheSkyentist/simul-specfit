@@ -4,7 +4,7 @@
     "Groups": {
          "": {
             "TieRedshift": true,
-            "TieDispersion": true,
+            "TieDispersion": false,
             "Species": [
                 {
                     "Name": "HI",
@@ -30,7 +30,7 @@
                     "Name": "HIa1",
                     "LineType": "absorption",
                     "Lines": [
-                        {"Wavelength": 4852.68, "RelStrength": null}
+                        {"Wavelength": 4830, "RelStrength": null}
                     ]
                 },
                 {
@@ -44,7 +44,7 @@
                     "Name": "HIa3",
                     "LineType": "absorption",
                     "Lines": [
-                        {"Wavelength": 4872.68, "RelStrength": null}
+                        {"Wavelength": 4890, "RelStrength": null}
                     ]
                 }
             ]
