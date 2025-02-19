@@ -7,6 +7,7 @@ import argparse
 import requests
 
 # Data manipulation
+import numpy as np
 import pandas as pd
 
 # HTML parsing
@@ -76,13 +77,25 @@ def main() -> None:
     df = pd.DataFrame(data, columns=labels, dtype=None)
     df = df.apply(lambda col: col.astype('string') if col.dtype == 'object' else col)
 
+    # If Grating in Table fix it
+    if 'Grating' in df.columns:
+        df.insert(
+            df.columns.get_loc('Grating'),
+            'grating',
+            np.where(df['file'].str.contains('prism'), 'PRISM', 'G395M'),
+        )
+        df.drop('Grating', axis=1, inplace=True)
+
     # Get rid of all columns after comment
     df.drop(df.columns[df.columns.get_loc('comment') + 1 :], axis=1, inplace=True)
 
+    # Restrict to rubies
+    df = df[df['root'].str.startswith('rubies')]
+
     # Add columns
-    split_columns = df['root'].str.split('-', expand=True)
-    for idx, col in enumerate(['survey', 'field', 'reduction']):
-        df.insert(idx + 1, col, split_columns[idx])
+    split_columns = df['root'].str.split('-', expand=True, n=2)
+    for idx, col in enumerate(['survey', 'mask', 'reduction']):
+        df.insert(df.columns.get_loc('root'), col, split_columns[idx])
 
     # Add version info to file
     ver = df['reduction']

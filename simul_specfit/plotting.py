@@ -137,7 +137,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     fig.text(
         0.5,
         1.05,
-        f'{rows[0]["uid"]} ({rows[0]["root"]}): $z = {spectrum.redshift_initial:.3f}$',
+        f'{rows[0]["srcid"]} ({rows[0]["root"]}): $z = {spectrum.redshift_initial:.3f}$',
         ha='center',
         va='center',
         fontsize='large',
@@ -146,7 +146,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
     # Show the plot
     fig.savefig(
         os.path.join(
-            'RUBIES/Plots', f'{rows[0]["root"]}-{rows[0]["uid"]}{cname}_fit.pdf'
+            'RUBIES/Plots', f'{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_fit.pdf'
         )
     )
     pyplot.close(fig)

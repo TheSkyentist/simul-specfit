@@ -225,7 +225,7 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Save all samples as npz
     np.savez(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["uid"]}{cname}_full.npz',
+        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_full.npz',
         **samples,
     )
 
@@ -280,6 +280,6 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Save the summary
     hdul.writeto(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["uid"]}{cname}_summary.fits',
+        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.fits',
         overwrite=True,
     )

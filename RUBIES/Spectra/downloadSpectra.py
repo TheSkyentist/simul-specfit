@@ -77,7 +77,7 @@ def main() -> None:
     targets = Table.read(args.targets)
 
     # Restrict to valid targets
-    # targets = targets[targets['uid'] > 0]
+    # targets = targets[targets['srcid'] > 0]
 
     # Single threading
     if ncpu == 1:

@@ -42,13 +42,13 @@ def main():
     targets = Table.read(args.catalog)
 
     # Get unique targets
-    unique_targets = np.unique(targets['root', 'uid'])
+    unique_targets = np.unique(targets['root', 'srcid'])
 
     # Get rows
     allrows = []
     for u in unique_targets:
         good = np.logical_and(
-            targets['uid'] == u['uid'], targets['root'] == u['root']
+            targets['srcid'] == u['srcid'], targets['root'] == u['root']
         )
 
         # Get the rows
@@ -65,7 +65,7 @@ def process(rows, config):
     try:
         RubiesFit(config, rows)
     except Exception as e:
-        print(rows[0]['root', 'uid'], e)
+        print(rows[0]['root', 'srcid'], e)
 
 
 if __name__ == '__main__':
