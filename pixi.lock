@@ -3448,8 +3448,8 @@ packages:
   requires_python: '>=3.10'
 - pypi: .
   name: simul-specfit
-  version: 0.3.1
-  sha256: 3a8ff46321c7df95f4ccca26b4410efea2b3f4147da61473d09bad5c8739ab5b
+  version: 0.3.2
+  sha256: 92f7886131079f65595765ca765a2a6494f375cb996359d7efdfe744438bb585
   requires_dist:
   - numpyro
   - jaxns

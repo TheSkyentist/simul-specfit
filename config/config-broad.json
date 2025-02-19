@@ -9,7 +9,7 @@
                 {
                     "Name": "HI",
                     "AdditionalComponents": {
-                        "broad" : "Broad"
+                        "broad" : ""
                      },
                     "Lines": [
                         {"Wavelength": 6564.61, "RelStrength": null},
@@ -38,11 +38,6 @@
                     ]
                 }
             ]
-        },
-        "Broad": {
-            "TieRedshift": true,
-            "TieDispersion": true,
-            "Species": []
         }
     }
 }

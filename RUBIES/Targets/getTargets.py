@@ -72,14 +72,6 @@ def main() -> None:
     else:
         raise ValueError('Failed to download labels from DJA')
 
-    # Get targets
-    r = requests.get(f'{url}.json')
-    if r.status_code == 200:
-        # Get the data
-        data = r.json()['data']
-    else:
-        raise ValueError('Failed to download targets from DJA')
-
     # Create table
     df = pd.DataFrame(data, columns=labels, dtype=None)
     df = df.apply(lambda col: col.astype('string') if col.dtype == 'object' else col)
