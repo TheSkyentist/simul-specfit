@@ -37,31 +37,18 @@ def main() -> None:
         default='https://s3.amazonaws.com/msaexp-nirspec/extractions/rubies_all_extractions_v3',
     )
     parser.add_argument(
-        '--prepend-version', type=str, default='nod-', help='String to prepend to version'
+        '--prepend-version',
+        type=str,
+        default='nod-',
+        help='String to prepend to version',
+    )
+    parser.add_argument(
+        '--output', type=str, default='targets.fits', help='Output filename'
     )
     args = parser.parse_args()
     url = args.url
     pv = args.prepend_version
-
-    # Download
-    download(url, pv)
-
-
-def download(url: str, pv: str) -> None:
-    """
-    Download targets from DJA
-
-    Parameters
-    ----------
-    url : str
-        URL to download from
-    pv : str
-        Prepend version string (reduction type)
-
-    Returns
-    -------
-    None
-    """
+    output = args.output
 
     # Get targets
     r = requests.get(f'{url}.json')
@@ -120,7 +107,7 @@ def download(url: str, pv: str) -> None:
     df['comment'] = df['comment'].fillna('')
 
     # Save table
-    Table.from_pandas(df).write('targets.fits', overwrite=True)
+    Table.from_pandas(df).write(output, format='fits', overwrite=True)
 
 
 # Call main function
