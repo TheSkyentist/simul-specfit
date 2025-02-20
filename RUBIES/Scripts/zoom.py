@@ -15,7 +15,7 @@ from astropy.table import Table, join
 from matplotlib import pyplot
 
 # Hard coded continuum regions:
-cont_regs = [[0.470047845456, 0.517529690441], [0.633138018754, 0.695724769768]]
+cont_regs = [[0.4775, 0.4925], [0.65, 0.665]]
 
 
 def main():
@@ -38,12 +38,6 @@ def main():
         table_names=('narrow', 'broad'),
         join_type='inner',
     )
-    # results = join(
-    #     results,
-    #     cauchy,
-    #     keys=['root', 'srcid'],
-    #     join_type='inner',
-    # )
 
     # Join with targets
     rubies = join(targets, results, keys=['root', 'srcid'])
@@ -51,51 +45,10 @@ def main():
     # Convert to pandas
     df = rubies.to_pandas()
     df = df.map(lambda x: x.decode('utf-8') if isinstance(x, bytes) else x)
-    
-    # # Get IDs with grade 3
-    # grade3 = df.loc[
-    #     df['grade'] == 3, ['root', 'srcid', 'WAIC_broad', 'WAIC_narrow', 'WAIC']
-    # ].drop_duplicates()
-
-    # # Compute Pbroad
-    # grade3['pbroad'] = 1 / (1 + np.exp(grade3['WAIC_broad'] - grade3['WAIC_narrow']))
-    # grade3['pcauchy'] = 1 / (1 + np.exp(grade3['WAIC'] - grade3['WAIC_broad']))
-
-    # # Sort and reset index
-    # grade3 = grade3.sort_values(
-    #     ['pbroad', 'root', 'srcid'], ascending=[False, True, True]
-    # )
-    # grade3 = grade3.reset_index(drop=True)
-    # grade3['index'] = grade3.index
-
-    # # Merge
-    # df_grade3 = df.merge(
-    #     grade3, on=['root', 'srcid', 'WAIC_broad', 'WAIC_narrow', 'WAIC']
-    # )
-
-    # # Sort by root, srcid, pbroad
-    # df_grade3 = df_grade3.sort_values(
-    #     ['pbroad', 'root', 'srcid'], ascending=[False, True, True]
-    # )
-
-    # # Save output
-    # out = df_grade3.drop_duplicates(subset=['root', 'srcid'])
-    # out = Table.from_pandas(
-    #     out[['index', 'root', 'srcid', 'z', 'zfit', 'pbroad', 'pcauchy']]
-    # )
-    # out.write('summary.csv', overwrite=True)
-
-    # # Restrict for testing
-    # # df_grade3 = df_grade3[0:10]
-
-    # exit()
 
     # Multiprocess over unique targets and plot them
     with Pool(args.ncpu) as pool:
         pool.map(plot, df.groupby(['root', 'srcid']))
-
-    # for row in df.groupby(['root', 'srcid']):
-    #     plot(row)
 
 
 def plot(row):
@@ -134,10 +87,11 @@ def plot(row):
 
     # Create figure
     fig, axes = pyplot.subplots(
-        nrows=Nspec,
-        ncols=5,
-        figsize=(30, 5 * Nspec),
-        width_ratios=[4, 1, 1, 1, 1],
+        nrows=2 * Nspec,
+        ncols=4,
+        figsize=(15, 6 * Nspec),
+        width_ratios=[1, 1, 1, 1],
+        height_ratios=[5, 1] * Nspec,
         constrained_layout=True,
     )
 
@@ -151,33 +105,26 @@ def plot(row):
         disp = row.grating
         wave = u.Quantity(spectrum['wave'])
         flux = spectrum['flux'].to(
-            1e-20 * u.erg / u.s / u.cm**2 / u.AA,
-            equivalencies=u.spectral_density(wave),
+            1e-20 * u.erg / u.s / u.cm**2 / u.AA, equivalencies=u.spectral_density(wave)
         )
         err = spectrum['err'].to(
-            1e-20 * u.erg / u.s / u.cm**2 / u.AA,
-            equivalencies=u.spectral_density(wave),
+            1e-20 * u.erg / u.s / u.cm**2 / u.AA, equivalencies=u.spectral_density(wave)
         )
         wave = wave.value
-
-        # Plot entire spectrum
-        axes[i, 0].plot(wave, flux, color='gray', lw=1, ds='steps-mid')
-        axes[i, 0].errorbar(wave, flux, yerr=err, fmt='none', color='gray')
-        axes[i, 0].set(
-            xlim=(wave.min(), wave.max()), ylim=np.nanpercentile(flux.value, [1, 99.9])
-        )
 
         # Plot insets
         for j, creg in enumerate(cont_regs):
             mask = (wave > creg[0] * opz) & (wave < creg[1] * opz)
             line = r'H$\alpha$+NII+SII' if j else r'H$\beta$+OIII'
             for k in range(2):
-                ax = axes[i, 2 * j + k + 1]
+                ax = axes[2 * i, 2 * j + k]
+                rax = axes[2 * i + 1, 2 * j + k]
                 ax.plot(wave[mask], flux[mask], color='gray', lw=1, ds='steps-mid')
                 ax.errorbar(
                     wave[mask], flux[mask], yerr=err[mask], fmt='none', color='gray'
                 )
-                ax.set_xlim(creg[0] * opz, creg[1] * opz)
+                ax.set(xlim=(creg[0] * opz, creg[1] * opz), xticklabels=[])
+                rax.set_xlim(creg[0] * opz, creg[1] * opz)
 
                 # Narrow:
                 if k:
@@ -213,6 +160,16 @@ def plot(row):
                     fmt='none',
                     color='k',
                 )
+                if model_mask.sum() == mask.sum():
+                    rax.plot(
+                        model_wave[model_mask],
+                        (flux[mask].value - model_flux[model_mask]) / err[mask].value,
+                        color='k',
+                        ds='steps-mid',
+                    )
+                if mask.sum() and not np.all(np.isnan(flux[mask])):
+                    percent = np.nanpercentile(flux[mask].value, 95)
+                    ax.set_ylim(None, percent)
 
                 # Plot components
                 for component in model_components.T:
@@ -226,17 +183,14 @@ def plot(row):
                     )
     # Add rest-frame axes
     for i, ax in enumerate(axes.flatten()):
-        _ = ax.secondary_xaxis(
-            'top',
-            functions=(
-                lambda x: x / opz,
-                lambda x: x * opz,
-            ),
+        secax = ax.secondary_xaxis(
+            'top', functions=(lambda x: x / opz, lambda x: x * opz)
         )
         ax.tick_params(axis='x', which='both', top=False)
-        if i % 5 == 0:
-            for line in [6564.61, 4862.68, 5008.24, 4960.295]:
-                ax.axvline(line * opz / 1e4, color='k', ls='--', lw=1)
+        if (i // 4) % 2 == 1:
+            secax.set(xticklabels=[])
+        for line in [6564.61, 4862.68, 5008.24, 4960.295]:
+            ax.axvline(line * opz / 1e4, color='k', ls='--', lw=1)
 
     # Compute FWHMs
     if np.isnan(data['HI_narrow_6564.61_fwhm_narrow'].iloc[0]):
@@ -252,20 +206,20 @@ def plot(row):
     fwhm_broad_err = data[f'HI_broad_{lam}_fwhm_std'].iloc[0]
 
     # Compute BL probability
-    pbroad = 0#row.pbroad
+    pbroad = 0  # row.pbroad
 
     # Set labels
     fig.suptitle(
-        rf'{root}-{srcid}: ($z = {redshift_initial:.3f}$), FWHW-single: {fwhm:.0f} $\pm$ {fwhm_err:.0f}, FWHM-narrow: {fwhm_narrow:.0f} $\pm$ {fwhm_narrow_err:.0f}, FWHM-broad: {fwhm_broad:.0f} $\pm$ {fwhm_broad_err:.0f}, P(BL) = {pbroad:.2f}'
+        rf'{root}-{srcid}: ($z = {redshift_initial:.3f}$) P(BL) = {pbroad:.2f}'
+        + '\n'
+        + rf'FWHW-single: {fwhm:.0f} $\pm$ {fwhm_err:.0f} FWHM-narrow: {fwhm_narrow:.0f} $\pm$ {fwhm_narrow_err:.0f}, FWHM-broad: {fwhm_broad:.0f} $\pm$ {fwhm_broad_err:.0f}, '
     )
     fig.supylabel(rf'$f_\lambda$ [{flux.unit:latex_inline}]')
     fig.supxlabel(rf'$\lambda$ [{u.um:latex_inline}]')
 
     # Save figure
-    fig.savefig(f'Comparison-PDF/{root}-{srcid}_comparison.pdf')
-    fig.savefig(
-        f'Comparison-JPG/{root}-{srcid}_comparison.jpg', dpi=150
-    )
+    fig.savefig(f'Comparison-PDF/{root}-{srcid}_zoom.pdf')
+    fig.savefig(f'Comparison-JPG/{root}-{srcid}_zoom.jpg', dpi=150)
     pyplot.close(fig)
 
 
