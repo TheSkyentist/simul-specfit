@@ -87,17 +87,16 @@ def linesFluxesGuess(
             for center, line_cont in zip(centers, line_conts)
         ]
     )
-    guesses = guesses / strengths
+    guesses = guesses / strengths  # Divide by strengths
 
-    # For all lines that are tied, guess to the max value divided by the relative strength
-    # This normalizes them to ensure proper fitting.
+    # For all lines that are tied, guess to the max value divided
     i = 0
     for group in config['Groups'].values():
         for species in group['Species']:
             species_guesses, species_inds = [], []
             for line in species['Lines']:
                 if line['RelStrength'] is not None:
-                    species_guesses.append(guesses[i] / line['RelStrength'])
+                    species_guesses.append(guesses[i])
                     species_inds.append(i)
                 i += 1
             if species_guesses:
@@ -140,10 +139,13 @@ def lineFluxGuess(
 
     # Check if the mask is empty
     if imask.sum() == 0:
-        return -jnp.inf
+        return -(jnp.abs(spectrum.flux).max() * (spectrum.high - spectrum.low)).sum()
 
     # Estimate flux as maximum deviation from zero times the width of the region
-    flux = (jnp.abs(spectrum.flux[imask]).max() * (spectrum.high[imask] - spectrum.low[imask])).sum()
+    flux = (
+        jnp.abs(spectrum.flux[imask]).max()
+        * (spectrum.high[imask] - spectrum.low[imask])
+    ).sum()
 
     return flux
 
@@ -277,7 +279,7 @@ def continuumHeightGuess(
 
     # If no coverage, return very large guess, but negative so it can be overwritten by other disperser.
     if mask.sum() == 0:
-        return -jnp.abs(spectrum.flux + sigma*spectrum.err).max()
+        return -jnp.abs(spectrum.flux + sigma * spectrum.err).max()
 
     # Compute the median Nsigma upper bound
     return jnp.median(spectrum.flux[mask] + sigma * spectrum.err[mask])
