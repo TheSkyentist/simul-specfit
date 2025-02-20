@@ -22,7 +22,7 @@ dja.sort_values(
 dja.drop_duplicates(subset=['mask', 'srcid', 'grating'], keep='first', inplace=True)
 
 # Only use nod-v3 files
-for col in ['root','file']:
+for col in ['root', 'file']:
     dja[col] = dja[col].astype('string')
     dja[col] = dja[col].apply(
         lambda x: x.replace('v3', 'nod-v3') if 'nod' not in x else x
@@ -97,7 +97,35 @@ dja_v4 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v4].index)]
 # Get the v4 objects
 v4 = Table.read('prelim-v4.fits').to_pandas()
 v4[['grating', 'filter']] = v4['grating'].astype('string').str.split('_', expand=True)
+
+# Remove all those with 'bkg' in file
+v4['file'] = v4['file'].astype(str)
+v4 = v4[~v4['file'].str.contains('bkg')]
+
+# Merge
 rubies_v4 = dja_v4[['srcid', 'mask']].drop_duplicates().merge(v4, how='inner')
+
+# Keep v3 grades unless v4 is better
+for i, row in rubies_v4.iterrows():
+    good = (
+        (dja_v4['srcid'] == row['srcid'])
+        & (dja_v4['mask'] == row['mask'])
+        & (dja_v4['grating'] == row['grating'])
+    )
+    if good.any():
+        # Get the v4 grade
+        grade_v4 = rubies_v4.loc[i, 'grade']
+
+        # Get the v3 grade
+        grade_v3 = dja_v4[good].iloc[0]['grade']
+
+        # If v4 grade is better, replace z, zfit, and grade
+        if pd.isna(grade_v4) or grade_v3 >= grade_v4:
+            print(row.srcid)
+            rubies_v4.loc[i, 'z'] = dja_v4[good].iloc[0]['z']
+            rubies_v4.loc[i, 'zfit'] = dja_v4[good].iloc[0]['zfit']
+            rubies_v4.loc[i, 'grade'] = dja_v4[good].iloc[0]['grade']
+
 
 # Columns to keep
 cols = [

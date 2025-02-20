@@ -275,9 +275,9 @@ def continuumHeightGuess(
     # Mask the lines
     mask = spectrum.maskLines(config, continuum_region, linepad)
 
-    # If no coverage, return -∞
+    # If no coverage, return very large guess, but negative so it can be overwritten by other disperser.
     if mask.sum() == 0:
-        return -jnp.inf
+        return -jnp.abs(spectrum.flux + sigma*spectrum.err).max()
 
     # Compute the median Nsigma upper bound
     return jnp.median(spectrum.flux[mask] + sigma * spectrum.err[mask])
