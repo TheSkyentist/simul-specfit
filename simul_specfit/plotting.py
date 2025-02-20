@@ -112,7 +112,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
             ax.tick_params(axis='x', which='both', top=False)
 
             # Line Labels
-            for line in set(line_centers):
+            for line in jnp.unique(line_centers):
                 line = line * (1 + spectra.redshift_initial)
                 if line < cont_reg[0] or line > cont_reg[1]:
                     continue

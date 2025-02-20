@@ -105,10 +105,7 @@ def multiSpecModel(
 
 
     # Compute line fluxes
-    
     fluxes = determ('flux_all', params['flux'] * line_estimates_eq)
-
-    # exit()
 
     # Add initial redshift
     redshift = determ('redshift_all', params['redshift'] + spectra.redshift_initial)
