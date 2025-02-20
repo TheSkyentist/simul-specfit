@@ -27,7 +27,7 @@ MAGIC_ETA: Final[jnp.ndarray] = jnp.array([1.33603, -0.47719, 0.11116])
 
 
 # Could be replaced by one-liner, but this is more readable
-# erfcond = jit(vmap(vmap(lambda b, λ: lax.cond(b, erf, lambda x: 0.0, λ))))
+# erfcond = jit(vmap(lambda b, λ: lax.cond(b, erf, lambda x: 0.0, λ)))
 @jit
 def erfcond(good: jnp.ndarray, sigma: jnp.ndarray) -> jnp.ndarray:
     """

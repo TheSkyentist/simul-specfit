@@ -30,7 +30,7 @@ def multiSpecModel(
     matrices: Tuple[List[BCOO], List[BCOO], List[BCOO]],
     linetypes_all: Tuple[jnp.ndarray, List[jnp.ndarray], List[jnp.ndarray]],
     line_centers: jnp.ndarray,
-    line_guesses: jnp.ndarray,
+    line_estimates_eq: jnp.ndarray,
     cont_regs: jnp.ndarray,
     cont_guesses: jnp.ndarray,
 ) -> None:
@@ -47,8 +47,8 @@ def multiSpecModel(
         Line Type Arrays
     line_centers : jnp.ndarray
         Line centers
-    line_guesses : jnp.ndarray
-        Line guesses
+    line_estimates_eq : jnp.ndarray
+        Equalized line estimates
     cont_regs : jnp.ndarray
         Continuum regions
     cont_guesses : jnp.ndarray
@@ -103,14 +103,12 @@ def multiSpecModel(
             # Broadcast the parameters
             params[label] = p_orig @ M_orig
 
-    # Add initial flux guesses
-    if len(add[0]):
-        fo, fa = jnp.where(orig[0].todense(), 1, 0), jnp.where(add[0].todense(), 1, 0)
-        f_init = (fo @ line_guesses @ fo) + (fa @ line_guesses @ fa)
-    else:
-        fo = jnp.where(orig[0].todense(), 1, 0)
-        f_init = fo @ line_guesses @ fo
-    fluxes = determ('flux_all', params['flux'] * f_init)
+
+    # Compute line fluxes
+    
+    fluxes = determ('flux_all', params['flux'] * line_estimates_eq)
+
+    # exit()
 
     # Add initial redshift
     redshift = determ('redshift_all', params['redshift'] + spectra.redshift_initial)

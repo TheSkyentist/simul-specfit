@@ -86,7 +86,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
                     wave[mask],
                     model[k][mask],
                     color='#E20134',
-                    alpha=1 / 100,
+                    alpha=5 / len(model),
                     ds='steps-mid',
                 )
 
@@ -112,7 +112,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
             ax.tick_params(axis='x', which='both', top=False)
 
             # Line Labels
-            for line in line_centers:
+            for line in set(line_centers):
                 line = line * (1 + spectra.redshift_initial)
                 if line < cont_reg[0] or line > cont_reg[1]:
                     continue

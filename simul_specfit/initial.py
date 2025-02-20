@@ -89,14 +89,15 @@ def linesFluxesGuess(
     )
     guesses = guesses / strengths
 
-    # For all lines that are tied, guess to the max value
+    # For all lines that are tied, guess to the max value divided by the relative strength
+    # This normalizes them to ensure proper fitting.
     i = 0
     for group in config['Groups'].values():
         for species in group['Species']:
             species_guesses, species_inds = [], []
             for line in species['Lines']:
                 if line['RelStrength'] is not None:
-                    species_guesses.append(guesses[i])
+                    species_guesses.append(guesses[i] / line['RelStrength'])
                     species_inds.append(i)
                 i += 1
             if species_guesses:

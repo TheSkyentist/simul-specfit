@@ -83,8 +83,8 @@ def RUBIESModelArgs(config: dict, rows: Table) -> Tuple:
     # Compute Continuum Regions and Initial Guesses
     cont_regs, cont_guesses = initial.computeContinuumRegions(config, spectra)
 
-    # Compute Line Centers and Initial Guesses
-    line_centers, line_guesses = initial.linesFluxesGuess(
+    # Compute Line Centers and Equalized estimates
+    line_centers, line_estimates_eq = initial.linesFluxesGuess(
         config, spectra, cont_regs, cont_guesses
     )
 
@@ -101,7 +101,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> Tuple:
         matrices,
         linetypes_all,
         line_centers,
-        line_guesses,
+        line_estimates_eq,
         cont_regs,
         cont_guesses,
     )
