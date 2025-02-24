@@ -30,7 +30,7 @@ def main():
     # Get fitting results
     narrow = Table.read('RUBIES/Results/REH-simul.fits')
     broad = Table.read('RUBIES/Results/REH-simul_broad.fits')
-    # cauchy = Table.read('RUBIES/Results/REH-simul_cauchy.fits')
+    cauchy = Table.read('RUBIES/Results/REH-simul_cauchy.fits')
     results = join(
         narrow,
         broad,
@@ -38,12 +38,12 @@ def main():
         table_names=('narrow', 'broad'),
         join_type='inner',
     )
-    # results = join(
-    #     results,
-    #     cauchy,
-    #     keys=['root', 'srcid'],
-    #     join_type='inner',
-    # )
+    results = join(
+        results,
+        cauchy,
+        keys=['root', 'srcid'],
+        join_type='inner',
+    )
 
     # Join with targets
     rubies = join(targets, results, keys=['root', 'srcid'])
@@ -57,9 +57,9 @@ def main():
     #     df['grade'] == 3, ['root', 'srcid', 'WAIC_broad', 'WAIC_narrow', 'WAIC']
     # ].drop_duplicates()
 
-    # # Compute Pbroad
-    # grade3['pbroad'] = 1 / (1 + np.exp(grade3['WAIC_broad'] - grade3['WAIC_narrow']))
-    # grade3['pcauchy'] = 1 / (1 + np.exp(grade3['WAIC'] - grade3['WAIC_broad']))
+    # Compute Pbroad
+    df['pbroad'] = 1 / (1 + np.exp(df['WAIC_broad'] - df['WAIC_narrow']))
+    df['pcauchy'] = 1 / (1 + np.exp(df['WAIC'] - df['WAIC_broad']))
 
     # # Sort and reset index
     # grade3 = grade3.sort_values(
@@ -252,7 +252,7 @@ def plot(row):
     fwhm_broad_err = data[f'HI_broad_{lam}_fwhm_std'].iloc[0]
 
     # Compute BL probability
-    pbroad = 0#row.pbroad
+    pbroad = row.pbroad
 
     # Set labels
     fig.suptitle(

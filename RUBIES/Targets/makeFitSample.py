@@ -11,6 +11,9 @@ import pandas as pd
 dja = Table.read('dja.fits').to_pandas()
 dja['grating'] = dja['grating'].astype('string')
 
+# Consistent srcids
+dja['srcid'] = dja.groupby(['mask', 'uid'])['srcid'].transform('max')
+
 # Sort by grade and reduction
 dja.sort_values(
     by=['mask', 'srcid', 'grating', 'grade', 'reduction'],
@@ -65,6 +68,9 @@ dja_v3 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v3].index)]
 # Now we need to add in objects without a grade
 all_v3 = Table.read('nod-v3.fits').to_pandas()
 
+# Consistent srcids
+all_v3['srcid'] = all_v3.groupby(['mask', 'uid'])['srcid'].transform('max')
+
 # Find those missing ungraded spectra
 srcids = []
 for i, group in dja_v3.groupby(['mask', 'srcid']):
@@ -98,6 +104,9 @@ dja_v4 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v4].index)]
 v4 = Table.read('prelim-v4.fits').to_pandas()
 v4[['grating', 'filter']] = v4['grating'].astype('string').str.split('_', expand=True)
 
+# Consistent srcids
+v4['srcid'] = v4.groupby(['mask', 'slitid'])['srcid'].transform('max')
+
 # Remove all those with 'bkg' in file
 v4['file'] = v4['file'].astype(str)
 v4 = v4[~v4['file'].str.contains('bkg')]
@@ -121,7 +130,6 @@ for i, row in rubies_v4.iterrows():
 
         # If v4 grade is better, replace z, zfit, and grade
         if pd.isna(grade_v4) or grade_v3 >= grade_v4:
-            print(row.srcid)
             rubies_v4.loc[i, 'z'] = dja_v4[good].iloc[0]['z']
             rubies_v4.loc[i, 'zfit'] = dja_v4[good].iloc[0]['zfit']
             rubies_v4.loc[i, 'grade'] = dja_v4[good].iloc[0]['grade']

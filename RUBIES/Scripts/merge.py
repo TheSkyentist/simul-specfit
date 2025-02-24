@@ -18,7 +18,7 @@ with_cauchy = join(results, cauchy, keys=['root', 'srcid'], table_names=('', 'ca
 
 # Compute the probabilities
 results['PBroad'] = 1 / (1 + np.exp(results['WAIC_broad'] - results['WAIC_narrow']))
-# results['PCauchy'] = 1 / (1 + np.exp(with_cauchy['WAIC'] - with_cauchy['WAIC_broad']))
+results['PCauchy'] = 1 / (1 + np.exp(with_cauchy['WAIC'] - with_cauchy['WAIC_broad']))
 
 # Sort by field, uid, Pbroad
 results = results.to_pandas().sort_values(
@@ -76,14 +76,16 @@ results['root'] = results['root'].astype(str)
 grades = pd.read_csv(
     '/Users/hviding/Projects/LRD-Selection/data/grading.csv', skiprows=1
 )
-# grades['Comments'] = grades['Comments'].fillna('')
+
+# Add in FIELD
+grades['field'] = grades['root'].apply(lambda x: x.split('-')[1][0:3].upper())
 
 # Iterate over grades
 new_grades = []
 new_comments = []
 for row in results.itertuples():
     # Get matches
-    subset = grades[np.logical_and(grades['srcid'] == row.srcid,grades['root'] == row.root)]
+    subset = grades[np.logical_and(grades['srcid'] == row.srcid,grades['field'] == row.field)]
 
     # For each grade take the maximum
     new_grades.append(subset[['REH', 'AdG', 'JEG']].max(0).to_list())
@@ -94,3 +96,6 @@ for row in results.itertuples():
 # Add in the comments
 results[['REH', 'AdG', 'JEG']] = new_grades
 results['Comments'] = new_comments
+
+# Save to summary
+results[['srcid','field','root','root-1','PBroad','PCauchy','REH','AdG','JEG','Comments']].to_csv('summary.csv')

@@ -87,7 +87,7 @@ def linesFluxesGuess(
             for center, line_cont in zip(centers, line_conts)
         ]
     )
-    guesses = guesses / strengths  # Divide by strengths
+    guesses = guesses / strengths  # Divide by strengths to normalize
 
     # For all lines that are tied, guess to the max value divided
     i = 0
@@ -139,7 +139,7 @@ def lineFluxGuess(
 
     # Check if the mask is empty
     if imask.sum() == 0:
-        return -(jnp.abs(spectrum.flux).max() * (spectrum.high - spectrum.low)).sum()
+        imask = True
 
     # Estimate flux as maximum deviation from zero times the width of the region
     flux = (
