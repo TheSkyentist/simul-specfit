@@ -17,18 +17,12 @@ LINEPAD: Final[u.Quantity] = 3_000 * (u.km / u.s)
 CONTINUUM: Final[u.Quantity] = 10_000 * (u.km / u.s)
 
 # Dictionary that defines mapping from integers to line types
-LINETYPES: Final[dict] = {
-    'narrow': 0,
-    'broad': 1,
-    'cauchy': 2,
-    'absorption': 3,
-    'emission': 4,
-    'outflow': 5,
-}
+linetypes: list = ['narrow', 'broad', 'cauchy', 'absorption', 'emission', 'outflow']
+LINETYPES: Final[dict] = {line: i for i, line in enumerate(linetypes)}
 
 # Define the Flux priors (scale relative to the guess)
 flux: Final[dict[str, tuple[float]]] = {
-    'narrow': (0, 2),
+    'narrow': (-2, 2),
     'broad': (0, 3),
     'cauchy': (0, 3),
     'absorption': (-2, 0),

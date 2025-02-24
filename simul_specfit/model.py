@@ -95,14 +95,13 @@ def multiSpecModel(
         if N_add:
             with plate(f'N_{label}_add = {N_add}', N_add):
                 # Create the additional parameters
-                p_add = sample(f'{label}_add', prior(lt_add, p_orig))
+                p_add = sample(f'{label}_add', prior(lt_add, p_orig @ M_orig_add))
 
             # Broadcast the parameters and sum
             params[label] = p_orig @ M_orig + p_add @ M_add
         else:
             # Broadcast the parameters
             params[label] = p_orig @ M_orig
-
 
     # Compute line fluxes
     fluxes = determ('flux_all', params['flux'] * line_estimates_eq)

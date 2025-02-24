@@ -87,7 +87,7 @@ def linesFluxesGuess(
             for center, line_cont in zip(centers, line_conts)
         ]
     )
-    guesses = guesses / strengths  # Divide by strengths to normalize
+    guesses = jnp.abs(guesses) / strengths  # Divide by strengths to normalize
 
     # For all lines that are tied, guess to the max value divided
     i = 0
@@ -138,7 +138,8 @@ def lineFluxGuess(
     imask = spectrum.coverage((linewav - innerwidth), (linewav + innerwidth))
 
     # Check if the mask is empty
-    if imask.sum() == 0:
+    empty = not imask.any()
+    if empty:
         imask = True
 
     # Estimate flux as maximum deviation from zero times the width of the region
@@ -146,6 +147,10 @@ def lineFluxGuess(
         jnp.abs(spectrum.flux[imask]).max()
         * (spectrum.high[imask] - spectrum.low[imask])
     ).sum()
+
+    # If mask is empty, negate the sign
+    if empty:
+        flux = -flux
 
     return flux
 
