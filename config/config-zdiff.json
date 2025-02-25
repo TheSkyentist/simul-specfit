@@ -1,0 +1,72 @@
+{
+    "Name": "zdiff",
+    "Unit": "Angstrom",
+    "Groups": {
+        "": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": [
+                {
+                    "Name": "HI",
+                    "LineType": "emission",
+                    "AdditionalComponents": {
+                        "cauchy" : "Broad"
+                     },
+                    "Lines": [
+                        {"Wavelength": 4862.691, "RelStrength": null},
+                        {"Wavelength": 6564.632, "RelStrength": null},
+                        {"Wavelength": 10052.123, "RelStrength": null},
+                        {"Wavelength": 10941.082, "RelStrength": null}
+
+                    ]
+                },
+                {
+                    "Name": "[OIII]",
+                    "LineType": "emission",
+                    "Lines": [
+                        {"Wavelength": 5008.24, "RelStrength": 2.98},
+                        {"Wavelength": 4960.295, "RelStrength": 1}
+                    ]
+                },
+                {
+                    "Name": "OI",
+                    "LineType": "emission",
+                    "AdditionalComponents": {
+                        "cauchy" : "Broad"
+                    },
+                    "Lines": [
+                        {"Wavelength": 8446.359, "RelStrength": null}
+                    ]
+                },
+                {
+                    "Name": "HeI",
+                    "LineType": "emission",
+                    "AdditionalComponents": {
+                        "cauchy" : "Broad"
+                    },
+                    "Lines": [
+                        {"Wavelength": 10830.33978, "RelStrength": null}
+                    ]
+                }
+            ]
+        },
+        "Absorption": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": [
+                {
+                    "Name": "HI",
+                    "LineType": "absorption",
+                    "Lines": [
+                        {"Wavelength": 6564.632, "RelStrength": null}
+                    ]
+                }
+            ]  
+        },
+        "Broad": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": []
+        }
+    }
+}

@@ -88,14 +88,8 @@ add_in = pd.DataFrame(srcids, columns=('mask', 'srcid')).merge(all_v3)
 cols = [
     c for c in all_v3.columns if c in np.intersect1d(add_in.columns, dja_v3.columns)
 ]
-
 all_v3 = pd.concat([add_in[cols], all_v3[cols]])
-all_v3 = (
-    all_v3[['srcid', 'mask', 'grating']]
-    .drop_duplicates(keep='first')
-    .merge(all_v3, how='inner')
-)
-
+all_v3.drop_duplicates(subset=['mask', 'srcid', 'grating'], keep='first', inplace=True)
 
 # Use v4 for extended redshift range
 dja_v4 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v4].index)]
@@ -137,9 +131,9 @@ for i, row in rubies_v4.iterrows():
 
 # Columns to keep
 cols = [
-    c for c in dja_v4.columns if c in np.intersect1d(rubies_v4.columns, dja_v3.columns)
+    c for c in dja_v4.columns if c in np.intersect1d(rubies_v4.columns, all_v3.columns)
 ]
 
 # Concat
-rubies = pd.concat([dja_v3[cols], rubies_v4[cols]], ignore_index=True)
+rubies = pd.concat([all_v3[cols], rubies_v4[cols]], ignore_index=True)
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)

@@ -1,0 +1,35 @@
+{
+    "Name": "ha-zequal",
+    "Unit": "Angstrom",
+    "Groups": {
+        "": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": [
+                {
+                    "Name": "HI",
+                    "LineType": "emission",
+                    "AdditionalComponents": {
+                        "cauchy" : ""
+                     },
+                    "Lines": [
+                        {"Wavelength": 6564.632, "RelStrength": null}
+                    ]
+                }
+            ]
+        },
+        "Absorption": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": [
+                {
+                    "Name": "HI",
+                    "LineType": "absorption",
+                    "Lines": [
+                        {"Wavelength": 6564.632, "RelStrength": null}
+                    ]
+                }
+            ]  
+        }
+    }
+}

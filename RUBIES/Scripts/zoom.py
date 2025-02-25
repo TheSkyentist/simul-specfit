@@ -193,15 +193,15 @@ def plot(row):
             ax.axvline(line * opz / 1e4, color='k', ls='--', lw=1)
 
     # Compute FWHMs
-    if np.isnan(data['HI_narrow_6564.61_fwhm_narrow'].iloc[0]):
+    if np.isnan(data['HI_emission_6564.61_fwhm_narrow'].iloc[0]):
         lam = '4862.68'
     else:
         lam = '6564.61'
 
-    fwhm = data[f'HI_narrow_{lam}_fwhm_narrow'].iloc[0]
-    fwhm_err = data[f'HI_narrow_{lam}_fwhm_std_narrow'].iloc[0]
-    fwhm_narrow = data[f'HI_narrow_{lam}_fwhm_broad'].iloc[0]
-    fwhm_narrow_err = data[f'HI_narrow_{lam}_fwhm_std_broad'].iloc[0]
+    fwhm = data[f'HI_emission_{lam}_fwhm_narrow'].iloc[0]
+    fwhm_err = data[f'HI_emission_{lam}_fwhm_std_narrow'].iloc[0]
+    fwhm_narrow = data[f'HI_emission_{lam}_fwhm_broad'].iloc[0]
+    fwhm_narrow_err = data[f'HI_emission_{lam}_fwhm_std_broad'].iloc[0]
     fwhm_broad = data[f'HI_broad_{lam}_fwhm'].iloc[0]
     fwhm_broad_err = data[f'HI_broad_{lam}_fwhm_std'].iloc[0]
 

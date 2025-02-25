@@ -29,7 +29,7 @@ from simul_specfit.spectra import RubiesSpectra
 from simul_specfit import utils, initial, parameters
 
 
-def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
+def RubiesFit(config: dict, rows: Table, backend: str = 'NS') -> None:
     # Get the model arguments
     config, model_args = RUBIESModelArgs(config, rows)
 
@@ -195,7 +195,10 @@ def NSFit(
     samples['logL'] = np.hstack([p for p in logLs.values()]).sum(1)
 
     # Add log evidence to samples
-    extras = {'log_Z': NS._results.log_Z_mean, 'log_Z_err': NS._results.log_Z_uncert}
+    extras = {
+        'logZ': float(NS._results.log_Z_mean),
+        'logZ_err': float(NS._results.log_Z_uncert),
+    }
 
     return samples, extras
 
@@ -274,7 +277,7 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Add the extras to the header
     for k, v in extras.items():
-        if v == np.inf:
+        if np.isinf(v):
             v = 'inf'
         hdul[1].header[k] = v
 
