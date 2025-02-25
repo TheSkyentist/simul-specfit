@@ -2,6 +2,7 @@
 RUBIES/**/*.fits
 RUBIES/**/*.npz
 RUBIES/**/*.pdf
+RUBIES/**/*.jpg
 
 # Ignore pycache
 __pycache__
