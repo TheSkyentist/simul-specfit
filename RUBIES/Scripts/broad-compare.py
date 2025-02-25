@@ -262,9 +262,9 @@ def plot(row):
     fig.supxlabel(rf'$\lambda$ [{u.um:latex_inline}]')
 
     # Save figure
-    fig.savefig(f'Comparison-PDF/{root}-{srcid}_comparison.pdf')
+    fig.savefig(f'RUBIES/Comparison-PDF/{root}-{srcid}_comparison.pdf')
     fig.savefig(
-        f'Comparison-JPG/{root}-{srcid}_comparison.jpg', dpi=150
+        f'RUBIES/Comparison-JPG/{root}-{srcid}_comparison.jpg', dpi=150
     )
     pyplot.close(fig)
 

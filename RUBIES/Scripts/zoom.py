@@ -218,8 +218,8 @@ def plot(row):
     fig.supxlabel(rf'$\lambda$ [{u.um:latex_inline}]')
 
     # Save figure
-    fig.savefig(f'Comparison-PDF/{root}-{srcid}_zoom.pdf')
-    fig.savefig(f'Comparison-JPG/{root}-{srcid}_zoom.jpg', dpi=150)
+    fig.savefig(f'RUBIES/Comparison-PDF/{root}-{srcid}_zoom.pdf')
+    fig.savefig(f'RUBIES/Comparison-JPG/{root}-{srcid}_zoom.jpg', dpi=150)
     pyplot.close(fig)
 
 
