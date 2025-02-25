@@ -29,7 +29,7 @@ from simul_specfit.spectra import RubiesSpectra
 from simul_specfit import utils, initial, parameters
 
 
-def RubiesFit(config: dict, rows: Table, backend: str = 'NS') -> None:
+def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
     # Get the model arguments
     config, model_args = RUBIESModelArgs(config, rows)
 
