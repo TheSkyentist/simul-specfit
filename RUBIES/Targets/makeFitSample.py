@@ -9,6 +9,7 @@ import pandas as pd
 
 # Load data
 dja = Table.read('dja.fits').to_pandas()
+dja['grating'] = dja['grating'].astype('string')
 
 # Consistent srcids
 dja['srcid'] = dja.groupby(['mask', 'uid'])['srcid'].transform('max')
@@ -66,6 +67,7 @@ dja_v3 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v3].index)]
 
 # Now we need to add in objects without a grade
 all_v3 = Table.read('nod-v3.fits').to_pandas()
+all_v3['grating'] = all_v3['grating'].astype('string')
 
 # Consistent srcids
 all_v3['srcid'] = all_v3.groupby(['mask', 'uid'])['srcid'].transform('max')
@@ -126,7 +128,6 @@ for i, row in rubies_v4.iterrows():
             rubies_v4.loc[i, 'z'] = dja_v4[good].iloc[0]['z']
             rubies_v4.loc[i, 'zfit'] = dja_v4[good].iloc[0]['zfit']
             rubies_v4.loc[i, 'grade'] = dja_v4[good].iloc[0]['grade']
-
 
 # Columns to keep
 cols = [
