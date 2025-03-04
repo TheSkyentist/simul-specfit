@@ -1,10 +1,8 @@
 #! /usr/bin/env python
 
-# Data manipulation
 import numpy as np
 import pandas as pd
-
-# Astropy
+from scipy.stats import norm
 from astropy.table import Table, join
 
 # Load in the data
@@ -18,6 +16,7 @@ with_cauchy = join(results, cauchy, keys=['root', 'srcid'], table_names=('', 'ca
 
 # Compute the probabilities
 results['PBroad'] = 1 / (1 + np.exp(results['WAIC_broad'] - results['WAIC_narrow']))
+results['sigma'] = norm.ppf((results['PBroad'] + 1) / 2)
 results['PCauchy'] = 1 / (1 + np.exp(with_cauchy['WAIC'] - with_cauchy['WAIC_broad']))
 
 # Sort by field, uid, Pbroad
@@ -72,6 +71,9 @@ Table.from_pandas(results).write('fitting-results.fits', overwrite=True)
 results['root'] = results['root'].astype(str)
 # results['root'] = results['root'].apply(lambda x: x.replace('v4','nod-v4'))
 
+# Limit to FWHM > 1000 
+results['fwhm_snr'] = results['HI_broad_6564.61_fwhm'] / results['HI_broad_6564.61_fwhm_std']
+
 # Add in old Grades
 grades = pd.read_csv(
     '/Users/hviding/Projects/LRD-Selection/data/grading.csv', skiprows=1
@@ -85,7 +87,9 @@ new_grades = []
 new_comments = []
 for row in results.itertuples():
     # Get matches
-    subset = grades[np.logical_and(grades['srcid'] == row.srcid,grades['field'] == row.field)]
+    subset = grades[
+        np.logical_and(grades['srcid'] == row.srcid, grades['field'] == row.field)
+    ]
 
     # For each grade take the maximum
     new_grades.append(subset[['REH', 'AdG', 'JEG']].max(0).to_list())
@@ -98,4 +102,23 @@ results[['REH', 'AdG', 'JEG']] = new_grades
 results['Comments'] = new_comments
 
 # Save to summary
-results[['srcid','field','root','root-1','PBroad','PCauchy','REH','AdG','JEG','Comments']].to_csv('summary.csv')
+summary = results[
+    [
+        'srcid',
+        'field',
+        'root',
+        'root-1',
+        'sigma',
+        'fwhm_snr',
+        'PBroad',
+        'PCauchy',
+        'REH',
+        'AdG',
+        'JEG',
+        'Comments',
+    ]
+]
+
+# Restrict to PBroad()
+
+summary.to_csv('summary.csv')

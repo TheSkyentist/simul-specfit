@@ -206,7 +206,7 @@ def plot(row):
     fwhm_broad_err = data[f'HI_broad_{lam}_fwhm_std'].iloc[0]
 
     # Compute BL probability
-    pbroad = 0  # row.pbroad
+    pbroad = row.pbroad
 
     # Set labels
     fig.suptitle(
