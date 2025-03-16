@@ -20,7 +20,7 @@ from numpyro.contrib.nested_sampling import NestedSampler
 
 # JAX
 import numpy as np
-from jax import random
+from jax import random, vmap
 
 # Simul-SpecFit
 from simul_specfit.model import multiSpecModel
@@ -132,12 +132,8 @@ def MCMCFit(
     # Get the samples
     samples = mcmc.get_samples()
 
-    # Compute the log likelihood
-    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
-    for k, v in logLs.items():
-        samples[k] = v
-    logL = np.hstack([p for p in logLs.values()])  # Likelihood Matrix
-    samples['logL'] = logL.sum(1)
+    # Compute relevant probabilities
+    logL = computeProbs(samples, model_args)
 
     # Compute the WAIC
     waic = -2 * (
@@ -188,11 +184,8 @@ def NSFit(
     # Get the sample
     samples = NS.get_samples(rng_key, N)
 
-    # Compute the log likelihood
-    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
-    for k, v in logLs.items():
-        samples[k] = v
-    samples['logL'] = np.hstack([p for p in logLs.values()]).sum(1)
+    # Compute relevant probabilities
+    _ = computeProbs(samples, model_args)
 
     # Add log evidence to samples
     extras = {
@@ -203,12 +196,29 @@ def NSFit(
     return samples, extras
 
 
+def computeProbs(samples: dict, model_args: tuple) -> np.ndarray:
+    # Compute the log likelihood
+    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
+    for k, v in logLs.items():
+        samples[k] = v
+    logL = np.hstack([p for p in logLs.values()])  # Likelihood Matrix
+    samples['logL'] = logL.sum(1)
+
+    # Compute the log density
+    logP = vmap(lambda s: infer.util.log_density(multiSpecModel, model_args, {}, s)[0])(
+        samples
+    )
+    samples['logP'] = np.array(logP)
+
+    return logL
+
+
 def saveResults(config, rows, model_args, samples, extras) -> None:
     # Get config name
     cname = '_' + config['Name'] if config['Name'] else ''
 
     # Unpack model args
-    spectra, _, _, _, _, _, _ = model_args
+    spectra, _, _, _, _, cont_regs, _ = model_args
 
     # Correct sample units
     samples['flux_all'] = samples['flux_all'] * (spectra.fλ_unit * spectra.λ_unit).to(
@@ -222,9 +232,20 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Create outputs
     colnames = [
-        n for n in ['lsf_scale', 'PRISM_flux', 'PRISM_offset'] if n in samples.keys()
+        n
+        for n in ['lsf_scale', 'PRISM_flux', 'PRISM_offset', 'logL', 'logP']
+        if n in samples.keys()
     ]
     out = Table([samples[name] for name in colnames], names=colnames)
+
+    # Add continuum regions and error scales to samples
+    samples['cont_regs'] = np.array(cont_regs)
+    samples.update(
+        {
+            f'{spectrum.name}_errscales': np.array(spectrum.errscales)
+            for spectrum in spectra.spectra
+        }
+    )
 
     # Save all samples as npz
     np.savez(
@@ -267,19 +288,17 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
         )
         out = hstack([out, out_part])
 
-    # Append logLs
-    out['logL'] = np.sum(
-        [samples[f'{spectrum.name}'].sum(1) for spectrum in spectra.spectra], axis=0
-    )
+    # Create extra table
+    extra = Table([[v] for v in extras.values()], names=extras.keys())
 
     # Create HDUList
-    hdul = fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(out)])
-
-    # Add the extras to the header
-    for k, v in extras.items():
-        if np.isinf(v):
-            v = 'inf'
-        hdul[1].header[k] = v
+    hdul = fits.HDUList(
+        [
+            fits.PrimaryHDU(),
+            fits.BinTableHDU(out, name='PARAMS'),
+            fits.BinTableHDU(extra, name='EXTRAS'),
+        ]
+    )
 
     # Save the summary
     hdul.writeto(

@@ -469,6 +469,7 @@ class Spectrum:
 
         # Loop over the continuum regions
         newerr = np.zeros_like(self.err)
+        scales = []
         for region in continuum_regions:
             # Compute the masks
             regmask = self.coverage(region[0], region[1], partial=False)
@@ -482,9 +483,13 @@ class Spectrum:
 
             # Scale the errorbars
             scale = self.scaleErrorbars(linemask)
+            scales.append(scale)
 
             # Apply the scaling
             newerr = np.where(regmask, self.err * scale, newerr)
+
+        # Keep track of the scales
+        self.errscales = scales
 
         # Store the new errorbars
         self.err = newerr
