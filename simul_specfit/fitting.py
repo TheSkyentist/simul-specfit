@@ -14,13 +14,13 @@ from astropy.io import fits
 from astropy.table import Table, hstack
 
 # Numpyro
-from numpyro import infer
-from numpyro.handlers import trace, seed
+from numpyro import infer, optim
+from numpyro.handlers import trace, seed, substitute
 from numpyro.contrib.nested_sampling import NestedSampler
 
 # JAX
 import numpy as np
-from jax import random, vmap
+from jax import random, vmap, numpy as jnp
 
 # Simul-SpecFit
 from simul_specfit.model import multiSpecModel
@@ -42,6 +42,11 @@ def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
             samples, extras = MCMCFit(model_args, rng_key)
         case 'NS':
             samples, extras = NSFit(model_args, rng_key)
+        case 'MAP':
+            print('Warning, Experimental, Do Not Use')
+            samples, extras = MAPFit(model_args, rng_key)
+        case _:
+            raise ValueError(f'Unknown backend: {backend}')
 
     # Plot the results
     plotResults(config, rows, model_args, samples)
@@ -194,6 +199,54 @@ def NSFit(
     }
 
     return samples, extras
+
+
+def MAPFit(
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 1000
+) -> Tuple[Dict, Dict]:
+    """
+    Fit the RUBIES data with Maximum A Posteriori estimation.
+
+    Parameters
+    ----------
+    model_args : tuple
+        Model arguments
+    rng_key : random.PRNGKey
+        JAX random key
+    num_steps : int, optional
+        Number of optimization steps
+
+    Returns
+    -------
+    Tuple[Dict, Dict]
+        Samples and extras dictionaries
+    """
+
+    # MAP Estimator
+    svi = infer.SVI(
+        multiSpecModel,
+        infer.autoguide.AutoDelta(multiSpecModel),
+        optim.Adam(step_size=1e-2),
+        loss=infer.Trace_ELBO(),
+    )
+
+    # Run the optimization
+    svi_result = svi.run(rng_key, N, *model_args)
+    params, losses = svi_result.params, svi_result.losses
+    params = {k.removesuffix('_auto_loc'): v for k, v in params.items()}
+
+    # Get trace
+    traced_model = trace(substitute(multiSpecModel, data=params)).get_trace(*model_args)
+
+    # Create compatible samples dictionary
+    samples = {
+        name: jnp.array(site['value'])[None, ...]  # Add sample dimension
+        for name, site in traced_model.items()
+        if site['type'] in ['deterministic', 'sample']
+        and not site.get('is_observed', False)
+    }
+
+    return samples, {'losses': losses}
 
 
 def computeProbs(samples: dict, model_args: tuple) -> np.ndarray:

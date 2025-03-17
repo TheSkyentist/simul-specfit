@@ -34,7 +34,7 @@ def main():
     # Ensure results/Plots directories exist
     for d in ['RUBIES/Results', 'RUBIES/Plots']:
         if not os.path.exists(d):
-            os.makedir(d)
+            os.makedirs(d)
 
     # Load targets
     targets = Table.read(args.catalog)
