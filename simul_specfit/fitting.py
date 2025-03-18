@@ -341,6 +341,11 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
         )
         out = hstack([out, out_part])
 
+    # Create Summary CSV
+    df = out.to_pandas().quantile([0.16, 0.5, 0.84]).T
+    df.columns = ['P16', 'P50', 'P84']
+    df.to_csv(f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.csv')
+
     # Create extra table
     extra = Table([[v] for v in extras.values()], names=extras.keys())
 
