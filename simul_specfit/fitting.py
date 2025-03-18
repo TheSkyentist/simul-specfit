@@ -344,12 +344,6 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
         )
         out = hstack([out, out_part])
 
-    # Create Summary CSV
-    qs = [0.16, 0.5, 0.84]
-    df = pd.concat([t.to_pandas().quantile(qs).T for t in [out, extras]], axis=0)
-    df.columns = ['P16', 'P50', 'P84']
-    df.to_csv(f'{savename}_summary.csv')
-
     # Create extra table
     extra = Table([[v] for v in extras.values()], names=extras.keys())
 
@@ -364,3 +358,9 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Save the summary
     hdul.writeto(f'{savename}_summary.fits', overwrite=True)
+
+    # Create Summary CSV
+    qs = [0.16, 0.5, 0.84]
+    df = pd.concat([t.to_pandas().quantile(qs).T for t in [out, extra]], axis=0)
+    df.columns = ['P16', 'P50', 'P84']
+    df.to_csv(f'{savename}_summary.csv')
