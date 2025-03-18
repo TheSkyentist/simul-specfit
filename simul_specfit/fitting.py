@@ -8,6 +8,9 @@ import re
 # Typing
 from typing import Dict, Tuple
 
+# Data Science
+import pandas as pd
+
 # Astropy packages
 import astropy.units as u
 from astropy.io import fits
@@ -270,6 +273,9 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
     # Get config name
     cname = '_' + config['Name'] if config['Name'] else ''
 
+    # Get common filename
+    savename = f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}'
+
     # Unpack model args
     spectra, _, _, _, _, cont_regs, _ = model_args
 
@@ -301,10 +307,7 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
     )
 
     # Save all samples as npz
-    np.savez(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_full.npz',
-        **samples,
-    )
+    np.savez(f'{savename}_full.npz', **samples)
 
     # Get names of the lines
     # TODO: Better sanitization of line names?
@@ -342,9 +345,10 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
         out = hstack([out, out_part])
 
     # Create Summary CSV
-    df = out.to_pandas().quantile([0.16, 0.5, 0.84]).T
+    qs = [0.16, 0.5, 0.84]
+    df = pd.concat([t.to_pandas().quantile(qs).T for t in [out, extras]], axis=0)
     df.columns = ['P16', 'P50', 'P84']
-    df.to_csv(f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.csv')
+    df.to_csv(f'{savename}_summary.csv')
 
     # Create extra table
     extra = Table([[v] for v in extras.values()], names=extras.keys())
@@ -359,7 +363,4 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
     )
 
     # Save the summary
-    hdul.writeto(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.fits',
-        overwrite=True,
-    )
+    hdul.writeto(f'{savename}_summary.fits', overwrite=True)
