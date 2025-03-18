@@ -17,7 +17,7 @@ THRESHOLD: Final[float] = 4.2 if config.jax_enable_x64 else 3.9
 # Conversion factor from FWHM to sigma for variance = 1/2
 # σ = fwhm / ( 2 * jnp.sqrt( 2 * jnp.log(2) ) )
 # σ_halfvar = jnp.sqrt(2) * σ
-FWHM_TO_SIGMA: Final[float] = 1 / (2 * jnp.sqrt(jnp.log(2)))
+HALFVAR_SIGMA_TO_FWHM: Final[float] = 2 * jnp.sqrt(jnp.log(2))
 
 # Pseudo-Voigt Profile Magic Numbers
 # From Thompson+ (1987) DOI:10.1107/S0021889887087090
@@ -85,11 +85,11 @@ def integrateGaussian(
 
     # Transform to σ and adjust to be for variance = 1/2
     # Inverse width once for faster computation
-    invssigma = 1 / (fwhms * FWHM_TO_SIGMA)
+    inv_halfvar_sigmas = HALFVAR_SIGMA_TO_FWHM / fwhms
 
     # Compute residual
-    low_resid = (low_edge - centers) * invssigma
-    high_resid = (high_edge - centers) * invssigma
+    low_resid = (low_edge - centers) * inv_halfvar_sigmas
+    high_resid = (high_edge - centers) * inv_halfvar_sigmas
 
     # Restrict to only those that won't compute to zero
     good = jnp.logical_and(-threshold < low_resid, high_resid < threshold)
