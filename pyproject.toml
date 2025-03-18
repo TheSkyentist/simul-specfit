@@ -28,7 +28,7 @@ cmake = ">=3.31.6,<4"
 python = ">=3.12,<3.14"
 ipython = ">=9.0.2,<10"
 graphviz = ">=12.2.1,<13"
-numpy = ">=2.2.3,<3"
+numpy = ">=2.2.4,<3"
 bs4 = ">=4.13.3,<5"
 
 [tool.pixi.pypi-dependencies]

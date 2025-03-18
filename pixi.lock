@@ -92,9 +92,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.1-hb9d3cd8_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/matplotlib-inline-0.1.7-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.5-h2d0b736_3.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.2.3-py313h17eae1a_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.2.4-py313h17eae1a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openssl-3.4.1-h7b32b05_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/pango-1.56.2-h861ebed_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/pango-1.56.3-h861ebed_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/parso-0.8.4-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pcre2-10.44-hba22ea6_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pexpect-4.9.0-pyhd8ed1ab_1.conda
@@ -137,7 +137,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb8e6e7a_1.conda
       - pypi: https://files.pythonhosted.org/packages/a2/ad/e0d3c824784ff121c03cc031f944bc7e139a8f1870ffd2845cc2dd76f6c4/absl_py-2.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/9b/a3/33546e62bb936d8dcceb24e7ef7540005c1dfbbe341715b217d2867e7cc2/astropy-7.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/c9/a1/c4d0b1f17be69a1eb4d50bc98f465d98cade3a1277d0d6c933f8a01af528/astropy_iers_data-0.2025.3.10.0.29.26-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/25/bd/745cbee503d3b12df37f8201cf76f1d231c469a11a125511fa75c76e31df/astropy_iers_data-0.2025.3.17.0.34.53-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/77/06/bb80f5f86020c4551da315d78b3ab75e8228f89f0162f2c3a819e407941a/attrs-25.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/aa/0d/5afbac38ce40643d8cb84b13f30a8e331ad73cf3a23c083b6d0af0e991d1/blosc2-3.2.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -254,9 +254,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/llvm-openmp-19.1.7-hdb05f8b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/matplotlib-inline-0.1.7-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.5-h5e97a16_3.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.2.3-py313h41a2e72_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.2.4-py313h41a2e72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.4.1-h81ee809_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pango-1.56.2-h73f1e88_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pango-1.56.3-h73f1e88_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/parso-0.8.4-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pcre2-10.44-h297a79d_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pexpect-4.9.0-pyhd8ed1ab_1.conda
@@ -281,7 +281,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-h6491c7d_1.conda
       - pypi: https://files.pythonhosted.org/packages/a2/ad/e0d3c824784ff121c03cc031f944bc7e139a8f1870ffd2845cc2dd76f6c4/absl_py-2.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/10/87/cb34793d62e33f97f61f2cec9e4651e8f14786e1810a78fae6e7209b6232/astropy-7.0.1-cp313-cp313-macosx_11_0_arm64.whl
-      - pypi: https://files.pythonhosted.org/packages/c9/a1/c4d0b1f17be69a1eb4d50bc98f465d98cade3a1277d0d6c933f8a01af528/astropy_iers_data-0.2025.3.10.0.29.26-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/25/bd/745cbee503d3b12df37f8201cf76f1d231c469a11a125511fa75c76e31df/astropy_iers_data-0.2025.3.17.0.34.53-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/77/06/bb80f5f86020c4551da315d78b3ab75e8228f89f0162f2c3a819e407941a/attrs-25.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/64/ac/75005f6b2506865d8a1630b95f3837f78003adb653d3bf63154c3bd8e14e/blosc2-3.2.0-cp313-cp313-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl
@@ -506,10 +506,10 @@ packages:
   - astropy[dev] ; extra == 'dev-all'
   - astropy[test-all] ; extra == 'dev-all'
   requires_python: '>=3.11'
-- pypi: https://files.pythonhosted.org/packages/c9/a1/c4d0b1f17be69a1eb4d50bc98f465d98cade3a1277d0d6c933f8a01af528/astropy_iers_data-0.2025.3.10.0.29.26-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/25/bd/745cbee503d3b12df37f8201cf76f1d231c469a11a125511fa75c76e31df/astropy_iers_data-0.2025.3.17.0.34.53-py3-none-any.whl
   name: astropy-iers-data
-  version: 0.2025.3.10.0.29.26
-  sha256: 0f8b9447268ac0e22f7af8627ca19d0300ffc20ba88a2a5a4dda366241faada5
+  version: 0.2025.3.17.0.34.53
+  sha256: 8006784932c625121c091f7b069b3fb4d0f471f63fe5b1e740d6d8f9f75171f7
   requires_dist:
   - pytest ; extra == 'test'
   - pytest-remotedata ; extra == 'test'
@@ -2764,9 +2764,9 @@ packages:
   requires_dist:
   - numpy>=1.23.0
   requires_python: '>=3.9'
-- conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.2.3-py313h17eae1a_0.conda
-  sha256: f9e84b3c757b57b5a875c5a96b52b9e54f184b95038b9467d995058b68896d0e
-  md5: 35e7b988e4ce49e6c402d1997c1c326f
+- conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.2.4-py313h17eae1a_0.conda
+  sha256: d27a5b605dac225d3b9b28bd4b3dc4479210d6ae72619f56594b4d74c88cb206
+  md5: 6c905a8f170edd64f3a390c76572e331
   depends:
   - __glibc >=2.17,<3.0.a0
   - libblas >=3.9.0,<4.0a0
@@ -2779,14 +2779,13 @@ packages:
   constrains:
   - numpy-base <0a0
   license: BSD-3-Clause
-  license_family: BSD
   purls:
   - pkg:pypi/numpy?source=hash-mapping
-  size: 8478589
-  timestamp: 1739426136517
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.2.3-py313h41a2e72_0.conda
-  sha256: a60c012a3b87e5e4cb002a41aa164b8f0e6cd8a35d63eadf0b025c259129a580
-  md5: 67d7e7f829d06baf1a53dd27b0e8b01d
+  size: 8521492
+  timestamp: 1742255362413
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.2.4-py313h41a2e72_0.conda
+  sha256: 3f4029334a82fb4f22995a0916b58a98769d00f265141f535975ec35015b9699
+  md5: 2f69d676535eff4ab82f4f8fcff974bb
   depends:
   - __osx >=11.0
   - libblas >=3.9.0,<4.0a0
@@ -2799,11 +2798,10 @@ packages:
   constrains:
   - numpy-base <0a0
   license: BSD-3-Clause
-  license_family: BSD
   purls:
   - pkg:pypi/numpy?source=hash-mapping
-  size: 6533531
-  timestamp: 1739426241828
+  size: 6534258
+  timestamp: 1742255432786
 - pypi: https://files.pythonhosted.org/packages/94/a3/8f689c90970afc61ca112af937168e1d364efe36682e9b92685d6158899c/numpyro-0.18.0-py3-none-any.whl
   name: numpyro
   version: 0.18.0
@@ -3065,15 +3063,15 @@ packages:
   - xlsxwriter>=3.0.5 ; extra == 'all'
   - zstandard>=0.19.0 ; extra == 'all'
   requires_python: '>=3.9'
-- conda: https://conda.anaconda.org/conda-forge/linux-64/pango-1.56.2-h861ebed_0.conda
-  sha256: d70d6f3dcd210a8048730713ed287dfc5c0ced80ed514808cf991e110c84cdcc
-  md5: 040f01140009618ce21ce6c5921704ba
+- conda: https://conda.anaconda.org/conda-forge/linux-64/pango-1.56.3-h861ebed_0.conda
+  sha256: 6bc073dc2759cb00bc9e94c7142acab58432245c6e04d1cef179e8afd3b58d6f
+  md5: 6d853ca33bc46bce99ce16ccd83d0466
   depends:
   - __glibc >=2.17,<3.0.a0
   - cairo >=1.18.4,<2.0a0
   - fontconfig >=2.15.0,<3.0a0
   - fonts-conda-ecosystem
-  - freetype >=2.12.1,<3.0a0
+  - freetype >=2.13.3,<3.0a0
   - fribidi >=1.0.10,<2.0a0
   - harfbuzz >=10.4.0,<11.0a0
   - libexpat >=2.6.4,<3.0a0
@@ -3083,17 +3081,17 @@ packages:
   - libzlib >=1.3.1,<2.0a0
   license: LGPL-2.1-or-later
   purls: []
-  size: 452053
-  timestamp: 1741789650104
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/pango-1.56.2-h73f1e88_0.conda
-  sha256: 456b040057c81cdd7d4e9c36baf2c41eaf3943d574c6da630eb63a59802876ff
-  md5: 8741a541dcb48f260284649463291c4b
+  size: 454553
+  timestamp: 1742223788507
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/pango-1.56.3-h73f1e88_0.conda
+  sha256: dac976052589a8a0778db1c1b6f279da200572ed9f265f3a6b7a1f217af4a5f0
+  md5: aef5caa7ce0af969bfab789900982918
   depends:
   - __osx >=11.0
   - cairo >=1.18.4,<2.0a0
   - fontconfig >=2.15.0,<3.0a0
   - fonts-conda-ecosystem
-  - freetype >=2.12.1,<3.0a0
+  - freetype >=2.13.3,<3.0a0
   - fribidi >=1.0.10,<2.0a0
   - harfbuzz >=10.4.0,<11.0a0
   - libexpat >=2.6.4,<3.0a0
@@ -3102,8 +3100,8 @@ packages:
   - libzlib >=1.3.1,<2.0a0
   license: LGPL-2.1-or-later
   purls: []
-  size: 422915
-  timestamp: 1741789819795
+  size: 425760
+  timestamp: 1742224136308
 - conda: https://conda.anaconda.org/conda-forge/noarch/parso-0.8.4-pyhd8ed1ab_1.conda
   sha256: 17131120c10401a99205fc6fe436e7903c0fa092f1b3e80452927ab377239bcc
   md5: 5c092057b6badd30f75b06244ecd01c9
@@ -3609,7 +3607,7 @@ packages:
 - pypi: .
   name: simul-specfit
   version: 0.3.2
-  sha256: 86a66231fa7d546868f34d62db2bb82f790c81aed7e7d5bf024b46f7c6abbd2c
+  sha256: 87313685121e059ecc073e29bb0f341c29a57047bda5cfaa8cd6392a9e50476d
   requires_dist:
   - numpyro>=0.18.0,<0.19
   - jaxns>=2.6.6,<3
