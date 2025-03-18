@@ -24,7 +24,12 @@ def main():
     parser.add_argument('config', type=str, help='Config')
     parser.add_argument('root', type=str, help='Root')
     parser.add_argument('srcid', type=int, help='Source ID')
-    parser.add_argument('--catalog', type=str, help='Catalog file', default='RUBIES/Targets/targets.fits')
+    parser.add_argument(
+        '--catalog',
+        type=str,
+        help='Catalog file',
+        default='RUBIES/Targets/targets.fits',
+    )
     args = parser.parse_args()
 
     # Load config from JSON file

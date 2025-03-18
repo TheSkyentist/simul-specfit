@@ -21,12 +21,20 @@ from simul_specfit.fitting import RubiesFit
 # Spawn for Linux sever
 mp.set_start_method('spawn', force=True)
 
+
 def main():
     # Parse arguements
     parser = argparse.ArgumentParser(description='Fit Rubies')
     parser.add_argument('config', type=str, help='Configuration file')
-    parser.add_argument('--catalog', type=str, help='Catalog file', default='RUBIES/Targets/targets.fits')
-    parser.add_argument('--ncpu', type=int, help='Number of CPUs', default=mp.cpu_count())
+    parser.add_argument(
+        '--catalog',
+        type=str,
+        help='Catalog file',
+        default='RUBIES/Targets/targets.fits',
+    )
+    parser.add_argument(
+        '--ncpu', type=int, help='Number of CPUs', default=mp.cpu_count()
+    )
     args = parser.parse_args()
 
     # Load config from JSON file
@@ -58,6 +66,8 @@ def main():
     # Multiprocess
     with mp.Pool(args.ncpu) as pool:
         pool.starmap(process, [(rows, config) for rows in allrows])
+        pool.close()
+        pool.join()
 
 
 def process(rows, config):
