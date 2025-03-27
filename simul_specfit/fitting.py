@@ -8,19 +8,22 @@ import re
 # Typing
 from typing import Dict, Tuple
 
+# Data Science
+import pandas as pd
+
 # Astropy packages
 import astropy.units as u
 from astropy.io import fits
 from astropy.table import Table, hstack
 
 # Numpyro
-from numpyro import infer
-from numpyro.handlers import trace, seed
+from numpyro import infer, optim
+from numpyro.handlers import trace, seed, substitute
 from numpyro.contrib.nested_sampling import NestedSampler
 
 # JAX
 import numpy as np
-from jax import random
+from jax import random, vmap, numpy as jnp
 
 # Simul-SpecFit
 from simul_specfit.model import multiSpecModel
@@ -42,6 +45,11 @@ def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
             samples, extras = MCMCFit(model_args, rng_key)
         case 'NS':
             samples, extras = NSFit(model_args, rng_key)
+        case 'MAP':
+            print('Warning, Experimental, Do Not Use')
+            samples, extras = MAPFit(model_args, rng_key)
+        case _:
+            raise ValueError(f'Unknown backend: {backend}')
 
     # Plot the results
     plotResults(config, rows, model_args, samples)
@@ -132,12 +140,8 @@ def MCMCFit(
     # Get the samples
     samples = mcmc.get_samples()
 
-    # Compute the log likelihood
-    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
-    for k, v in logLs.items():
-        samples[k] = v
-    logL = np.hstack([p for p in logLs.values()])  # Likelihood Matrix
-    samples['logL'] = logL.sum(1)
+    # Compute relevant probabilities
+    logL = computeProbs(samples, model_args)
 
     # Compute the WAIC
     waic = -2 * (
@@ -188,11 +192,8 @@ def NSFit(
     # Get the sample
     samples = NS.get_samples(rng_key, N)
 
-    # Compute the log likelihood
-    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
-    for k, v in logLs.items():
-        samples[k] = v
-    samples['logL'] = np.hstack([p for p in logLs.values()]).sum(1)
+    # Compute relevant probabilities
+    _ = computeProbs(samples, model_args)
 
     # Add log evidence to samples
     extras = {
@@ -203,12 +204,80 @@ def NSFit(
     return samples, extras
 
 
+def MAPFit(
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 1000
+) -> Tuple[Dict, Dict]:
+    """
+    Fit the RUBIES data with Maximum A Posteriori estimation.
+
+    Parameters
+    ----------
+    model_args : tuple
+        Model arguments
+    rng_key : random.PRNGKey
+        JAX random key
+    num_steps : int, optional
+        Number of optimization steps
+
+    Returns
+    -------
+    Tuple[Dict, Dict]
+        Samples and extras dictionaries
+    """
+
+    # MAP Estimator
+    svi = infer.SVI(
+        multiSpecModel,
+        infer.autoguide.AutoDelta(multiSpecModel),
+        optim.Adam(step_size=1e-2),
+        loss=infer.Trace_ELBO(),
+    )
+
+    # Run the optimization
+    svi_result = svi.run(rng_key, N, *model_args)
+    params, losses = svi_result.params, svi_result.losses
+    params = {k.removesuffix('_auto_loc'): v for k, v in params.items()}
+
+    # Get trace
+    traced_model = trace(substitute(multiSpecModel, data=params)).get_trace(*model_args)
+
+    # Create compatible samples dictionary
+    samples = {
+        name: jnp.array(site['value'])[None, ...]  # Add sample dimension
+        for name, site in traced_model.items()
+        if site['type'] in ['deterministic', 'sample']
+        and not site.get('is_observed', False)
+    }
+
+    return samples, {'losses': losses}
+
+
+def computeProbs(samples: dict, model_args: tuple) -> np.ndarray:
+    # Compute the log likelihood
+    logLs = infer.util.log_likelihood(multiSpecModel, samples, *model_args)
+    for k, v in logLs.items():
+        samples[k] = v
+    logL = np.hstack([p for p in logLs.values()])  # Likelihood Matrix
+    samples['logL'] = logL.sum(1)
+
+    # Compute the log density
+    logP = vmap(lambda s: infer.util.log_density(multiSpecModel, model_args, {}, s)[0])(
+        samples
+    )
+    samples['logP'] = np.array(logP)
+
+    return logL
+
+
 def saveResults(config, rows, model_args, samples, extras) -> None:
     # Get config name
     cname = '_' + config['Name'] if config['Name'] else ''
 
+    # Get common filename
+    savename = f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}'
+
     # Unpack model args
-    spectra, _, _, _, _, _, _ = model_args
+    spectra, _, _, _, _, cont_regs, _ = model_args
 
     # Correct sample units
     samples['flux_all'] = samples['flux_all'] * (spectra.fλ_unit * spectra.λ_unit).to(
@@ -222,15 +291,23 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
 
     # Create outputs
     colnames = [
-        n for n in ['lsf_scale', 'PRISM_flux', 'PRISM_offset'] if n in samples.keys()
+        n
+        for n in ['lsf_scale', 'PRISM_flux', 'PRISM_offset', 'logL', 'logP']
+        if n in samples.keys()
     ]
     out = Table([samples[name] for name in colnames], names=colnames)
 
-    # Save all samples as npz
-    np.savez(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_full.npz',
-        **samples,
+    # Add continuum regions and error scales to samples
+    samples['cont_regs'] = np.array(cont_regs)
+    samples.update(
+        {
+            f'{spectrum.name}_errscales': np.array(spectrum.errscales)
+            for spectrum in spectra.spectra
+        }
     )
+
+    # Save all samples as npz
+    np.savez(f'{savename}_full.npz', **samples)
 
     # Get names of the lines
     # TODO: Better sanitization of line names?
@@ -267,22 +344,23 @@ def saveResults(config, rows, model_args, samples, extras) -> None:
         )
         out = hstack([out, out_part])
 
-    # Append logLs
-    out['logL'] = np.sum(
-        [samples[f'{spectrum.name}'].sum(1) for spectrum in spectra.spectra], axis=0
-    )
+    # Create extra table
+    extra = Table([[v] for v in extras.values()], names=extras.keys())
 
     # Create HDUList
-    hdul = fits.HDUList([fits.PrimaryHDU(), fits.BinTableHDU(out)])
-
-    # Add the extras to the header
-    for k, v in extras.items():
-        if np.isinf(v):
-            v = 'inf'
-        hdul[1].header[k] = v
+    hdul = fits.HDUList(
+        [
+            fits.PrimaryHDU(),
+            fits.BinTableHDU(out, name='PARAMS'),
+            fits.BinTableHDU(extra, name='EXTRAS'),
+        ]
+    )
 
     # Save the summary
-    hdul.writeto(
-        f'RUBIES/Results/{rows[0]["root"]}-{rows[0]["srcid"]}{cname}_summary.fits',
-        overwrite=True,
-    )
+    hdul.writeto(f'{savename}_summary.fits', overwrite=True)
+
+    # Create Summary CSV
+    qs = [0.16, 0.5, 0.84]
+    df = pd.concat([t.to_pandas().quantile(qs).T for t in [out, extra]], axis=0)
+    df.columns = ['P16', 'P50', 'P84']
+    df.to_csv(f'{savename}_summary.csv')

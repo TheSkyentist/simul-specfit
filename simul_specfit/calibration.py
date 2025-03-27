@@ -3,7 +3,7 @@ Module for Handling LSF/lsf Curves
 """
 
 # Typing
-from typing import Callable
+from typing import Final, Callable
 
 # Import packages
 import astropy.units as u
@@ -15,6 +15,9 @@ from simul_specfit import priors
 
 # JAX packages
 from jax import jit, numpy as jnp
+
+# Conversion factor from FWHM to sigma for variance = 1/2
+SIGMA_TO_FWHM: Final[float] = 2 * jnp.sqrt(2 * jnp.log(2))
 
 
 # Generic Calibration
@@ -78,7 +81,7 @@ def InterpLSFCurve(lsf_file: str, λ_unit: u.Unit) -> Callable:
 
     # Convert to JAX arrays in the correct units
     wave = jnp.array((lsf_tab['wave']).to(λ_unit))
-    fwhm = jnp.array((lsf_tab['sigma']).to(λ_unit)) * 2 * jnp.sqrt(2 * jnp.log(2))
+    fwhm = jnp.array((lsf_tab['sigma']).to(λ_unit)) * SIGMA_TO_FWHM
 
     # Compute Interpolated lsf Curve
     @jit

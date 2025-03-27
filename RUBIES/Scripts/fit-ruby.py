@@ -24,7 +24,12 @@ def main():
     parser.add_argument('config', type=str, help='Config')
     parser.add_argument('root', type=str, help='Root')
     parser.add_argument('srcid', type=int, help='Source ID')
-    parser.add_argument('--catalog', type=str, help='Catalog file', default='RUBIES/Targets/targets.fits')
+    parser.add_argument(
+        '--catalog',
+        type=str,
+        help='Catalog file',
+        default='RUBIES/Targets/targets.fits',
+    )
     args = parser.parse_args()
 
     # Load config from JSON file
@@ -34,7 +39,7 @@ def main():
     # Ensure results/Plots directories exist
     for d in ['RUBIES/Results', 'RUBIES/Plots']:
         if not os.path.exists(d):
-            os.makedir(d)
+            os.makedirs(d)
 
     # Load targets
     targets = Table.read(args.catalog)

@@ -199,11 +199,12 @@ def computeContinuumRegions(
             cont_regs.append(region)
 
     # Convert to correct units and redshift
-    cont_regs = jnp.array(
+    cont_regs_rest = jnp.array(
         [cont_regs.to(spectra.λ_unit).value for cont_regs in cont_regs]
-    ) * (1 + spectra.redshift_initial)
+    )
+    cont_regs_obs = cont_regs_rest * (1 + spectra.redshift_initial)
 
-    return cont_regs, continuumHeightGuesses(cont_regs, config, spectra)
+    return cont_regs_obs, continuumHeightGuesses(cont_regs_obs, config, spectra)
 
 
 def continuumHeightGuesses(
