@@ -26,6 +26,14 @@
                     ]
                 },
                 {
+                    "Name": "[SII]",
+                    "LineType": "emission",
+                    "Lines": [
+                        {"Wavelength": 6718.29, "RelStrength": null},
+                        {"Wavelength": 6732.67, "RelStrength": null}
+                    ]
+                },
+                {
                     "Name": "[OIII]",
                     "LineType": "emission",
                     "Lines": [
