@@ -1,5 +1,5 @@
 {
-    "Name": "broad",
+    "Name": "zdiff",
     "Unit": "Angstrom",
     "Groups": {
         "": {
@@ -10,21 +10,22 @@
                     "Name": "HI",
                     "LineType": "emission",
                     "AdditionalComponents": {
-                        "broad" : ""
+                        "cauchy" : "Broad",
+                        "absorption": "Absorption"
                      },
                     "Lines": [
-                        {"Wavelength": 6564.61, "RelStrength": null},
-                        {"Wavelength": 4862.68, "RelStrength": null}
+                        {"Wavelength": 4862.691, "RelStrength": null},
+                        {"Wavelength": 6564.632, "RelStrength": null}
                     ]
                 },
                 {
-                    "Name": "[NII]",
-                    "LineType": "emission",
+                    "Name": "HeII",
+                    "LineType": "narrow",
                     "Lines": [
-                        {"Wavelength": 6585.27, "RelStrength": 2.95},
-                        {"Wavelength": 6549.86, "RelStrength": 1}
+                        {"Wavelength": 1640.4, "RelStrength": null},
+                        {"Wavelength": 4686, "RelStrength": null}
                     ]
-                },
+                },      
                 {
                     "Name": "[OIII]",
                     "LineType": "emission",
@@ -34,6 +35,16 @@
                     ]
                 }
             ]
+        },
+        "Broad": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": []
+        },
+        "Absorption": {
+            "TieRedshift": true,
+            "TieDispersion": true,
+            "Species": []  
         }
     }
 }

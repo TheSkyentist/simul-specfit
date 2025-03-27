@@ -76,30 +76,12 @@ results['fwhm_snr'] = results['HI_broad_6564.61_fwhm'] / results['HI_broad_6564.
 
 # Add in old Grades
 grades = pd.read_csv(
-    '/Users/hviding/Projects/LRD-Selection/data/grading.csv', skiprows=1
+    '/Users/hviding/Projects/LRD-Selection/data/Grading - Final.csv'
 )
+grades = grades[['srcid','field','REH','AdG','JEG','Old Comments','New Comments','final']]
 
-# Add in FIELD
-grades['field'] = grades['root'].apply(lambda x: x.split('-')[1][0:3].upper())
-
-# Iterate over grades
-new_grades = []
-new_comments = []
-for row in results.itertuples():
-    # Get matches
-    subset = grades[
-        np.logical_and(grades['srcid'] == row.srcid, grades['field'] == row.field)
-    ]
-
-    # For each grade take the maximum
-    new_grades.append(subset[['REH', 'AdG', 'JEG']].max(0).to_list())
-
-    # Take sum of comments
-    new_comments.append(';'.join(subset['Comments'][pd.notna(subset['Comments'])]))
-
-# Add in the comments
-results[['REH', 'AdG', 'JEG']] = new_grades
-results['Comments'] = new_comments
+# Merge with grades
+results = results.merge(grades, how='left', on=['srcid','field'])
 
 # Save to summary
 summary = results[
@@ -115,7 +97,9 @@ summary = results[
         'REH',
         'AdG',
         'JEG',
-        'Comments',
+        'Old Comments',
+        'New Comments',
+        'final',
     ]
 ]
 

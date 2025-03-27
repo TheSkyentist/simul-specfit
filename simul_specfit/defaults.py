@@ -13,8 +13,8 @@ import jax.numpy as jnp
 
 # Constants used for line detection, line padding, and continuum regions
 LINEDETECT: Final[u.Quantity] = 1_000 * (u.km / u.s)
-LINEPAD: Final[u.Quantity] = 3_000 * (u.km / u.s)
-CONTINUUM: Final[u.Quantity] = 10_000 * (u.km / u.s)
+LINEPAD: Final[u.Quantity] = 3_500 * (u.km / u.s)
+CONTINUUM: Final[u.Quantity] = 15_000 * (u.km / u.s)
 
 # Dictionary that defines mapping from integers to line types
 linetypes: list = ['narrow', 'broad', 'cauchy', 'absorption', 'emission', 'outflow']

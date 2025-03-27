@@ -90,6 +90,11 @@ cols = [
     c for c in all_v3.columns if c in np.intersect1d(add_in.columns, dja_v3.columns)
 ]
 new_v3 = pd.concat([add_in[cols], dja_v3[cols]])
+new_v3.sort_values(
+    by=['mask', 'srcid', 'grating', 'grade', 'reduction'],
+    ascending=(1, 1, 1, 0, 1),
+    inplace=True,
+)
 new_v3.drop_duplicates(subset=['mask', 'srcid', 'grating'], keep='first', inplace=True)
 
 # Use v4 for extended redshift range
