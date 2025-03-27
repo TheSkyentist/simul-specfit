@@ -139,6 +139,28 @@ cols = [
     c for c in dja_v4.columns if c in np.intersect1d(rubies_v4.columns, new_v3.columns)
 ]
 
+# Add bonus LRD
+bonus = pd.DataFrame(
+    {
+        'ra': [34.47017858, 34.47017858],
+        'dec': [-5.23787603, -5.23787603],
+        'file': [
+            'rubies-uds33-v4_g395m-f290lp_4233_50432.spec.fits',
+            'rubies-uds33-v4_prism-clear_4233_50432.spec.fits',
+        ],
+        'survey': ['rubies', 'rubies'],
+        'mask': ['uds33', 'uds33'],
+        'reduction': ['v4', 'v4'],
+        'root': ['rubies-uds33-v4', 'rubies-uds33-v4'],
+        'srcid': [50432, 50432],
+        'grating': ['G395M', 'PRISM'],
+        'grade': [3, 3],
+        'zfit': [6.423, 6.423],
+        'z': [6.423, 6.423],
+        'comment': ['bonus LRD', 'bonus LRD'],
+    }
+)
+
 # Concat
-rubies = pd.concat([new_v3[cols], rubies_v4[cols]], ignore_index=True)
+rubies = pd.concat([new_v3[cols], rubies_v4[cols], bonus], ignore_index=True)
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)
