@@ -60,7 +60,7 @@ best_z = dja.groupby(['mask', 'srcid']).apply(
 
 # Determine which object to use based on the redshift range
 use_v3 = best_z.between(3.4, 6.9)
-use_v4 = best_z.between(6.9, 7.3) | best_z.between(3.1, 3.4)
+use_v4 = best_z.gt(6.9) | best_z.between(3.1, 3.4)
 
 # Use v3 for nominal redshift range
 dja_v3 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v3].index)]
@@ -148,19 +148,27 @@ bonus = pd.DataFrame(
             'rubies-uds33-v4_g395m-f290lp_4233_50432.spec.fits',
             'rubies-uds33-v4_prism-clear_4233_50432.spec.fits',
         ],
-        'survey': ['rubies', 'rubies'],
-        'mask': ['uds33', 'uds33'],
-        'reduction': ['v4', 'v4'],
-        'root': ['rubies-uds33-v4', 'rubies-uds33-v4'],
+        'survey': [b'rubies', b'rubies'],
+        'mask': [b'uds33', b'uds33'],
+        'reduction': [b'v4', b'v4'],
+        'root': [b'rubies-uds33-v4', b'rubies-uds33-v4'],
         'srcid': [50432, 50432],
         'grating': ['G395M', 'PRISM'],
         'grade': [3, 3],
         'zfit': [6.423, 6.423],
         'z': [6.423, 6.423],
-        'comment': ['bonus LRD', 'bonus LRD'],
+        'comment': [b'bonus LRD', b'bonus LRD'],
     }
 )
 
 # Concat
 rubies = pd.concat([new_v3[cols], rubies_v4[cols], bonus], ignore_index=True)
+
+# Add in best redshifts
+rubies = rubies.merge(
+    best_z.rename('best_z'), left_on=['mask', 'srcid'], right_index=True, how='left'
+)
+rubies['best_z'] = rubies['best_z'].fillna(6.423)
+
+# Save
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)
