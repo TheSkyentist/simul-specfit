@@ -46,6 +46,8 @@ def main():
     df = rubies.to_pandas()
     df = df.map(lambda x: x.decode('utf-8') if isinstance(x, bytes) else x)
 
+    df['pbroad'] = 1 / (1 + np.exp(df['WAIC_broad'] - df['WAIC_narrow']))
+
     # Multiprocess over unique targets and plot them
     with Pool(args.ncpu) as pool:
         pool.map(plot, df.groupby(['root', 'srcid']))
@@ -206,7 +208,7 @@ def plot(row):
     fwhm_broad_err = data[f'HI_broad_{lam}_fwhm_std'].iloc[0]
 
     # Compute BL probability
-    pbroad = row.pbroad
+    pbroad = 0#row.pbroad
 
     # Set labels
     fig.suptitle(
@@ -218,8 +220,13 @@ def plot(row):
     fig.supxlabel(rf'$\lambda$ [{u.um:latex_inline}]')
 
     # Save figure
-    fig.savefig(f'RUBIES/Comparison-PDF/{root}-{srcid}_zoom.pdf')
-    fig.savefig(f'RUBIES/Comparison-JPG/{root}-{srcid}_zoom.jpg', dpi=150)
+    try:
+        fig.savefig(f'RUBIES/Comparison-PDF/{root}-{srcid}_comparison.pdf')
+        fig.savefig(
+            f'RUBIES/Comparison-JPG/{root}-{srcid}_comparison.jpg', dpi=150
+        )
+    except Exception:
+        print(srcid)
     pyplot.close(fig)
 
 

@@ -14,7 +14,6 @@ import argparse
 import numpy as np
 
 # Astronomy packages
-from astropy.io import fits
 from astropy.table import Table, vstack
 
 def main():
@@ -48,14 +47,14 @@ def main():
             continue
 
         # Load results
-        results = Table.read(file)
+        results = Table.read(file,'PARAMS')
 
         # Get mean and std of each column
         row = sum([(results[c].mean(), results[c].std()) for c in results.colnames], ())
         names = sum([(c, f'{c}_std') for c in results.colnames], ())
 
         # Get WAIC
-        waic = fits.getval(file,'WAIC',1)
+        waic = Table.read(file, 'EXTRAS')['WAIC'][0]
         row += (float(waic),)
         names += ('WAIC',)
 

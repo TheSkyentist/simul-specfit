@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 # Import packages
+import warnings
 import numpy as np
 from tqdm import tqdm
 from sedpy import observate
@@ -14,10 +15,10 @@ good = rubies.select_dtypes(include='object')
 rubies[good.columns] = good.astype('string')
 
 # For now, just limit to 154183
-# rubies = rubies[rubies['srcid'] == 180520]
+# rubies = rubies[rubies['srcid'] == 154183]
 
 # Get the relevant filters
-fnames = ['f277w', 'f356w', 'f410m', 'f444w']
+fnames = ['f277w', 'f356w', 'f444w']
 filters = observate.load_filters([f'jwst_{f.lower()}' for f in fnames])
 
 
@@ -27,9 +28,9 @@ out = {'srcid': [], 'root': [], 'mags': [], '': [], '_broad': []}
 
 # Group by root and srcid
 for (root, srcid), data in tqdm(rubies.groupby(['root', 'srcid'])):
-    print(root, srcid)
+
     # Make sure PRISM is in dispersers
-    summary = Table.read(f'RUBIES/Results/{root}-{srcid}_summary.fits')
+    summary = Table.read(f'RUBIES/Results/{root}-{srcid}_summary.fits','PARAMS')
     if not np.any(['PRISM' in x for x in summary.colnames]):
         continue
 
@@ -52,12 +53,13 @@ for (root, srcid), data in tqdm(rubies.groupby(['root', 'srcid'])):
     prism_wave = prism['wave'].value * 10000
 
     # Compute prism magnitudes
-    prism_mags = observate.getSED(prism_wave, prism_flam, filterlist=filters)
+    with warnings.catch_warnings():
+        prism_total = observate.getSED(prism_wave, prism_flam, filterlist=filters,linear_flux=True)
 
     # Iterate over narrow and broad results
     for ext in ['', '_broad']:
         # Sumamry results
-        summary = Table.read(f'RUBIES/Results/{root}-{srcid}{ext}_summary.fits')
+        summary = Table.read(f'RUBIES/Results/{root}-{srcid}{ext}_summary.fits', 'PARAMS')
 
         # Get line names
         line_names = [x[:-3] for x in summary.colnames if x.endswith('_ew')]
@@ -70,15 +72,22 @@ for (root, srcid), data in tqdm(rubies.groupby(['root', 'srcid'])):
             'PRISM_lines'
         ].transpose(0, 2, 1)
 
-        # Now calculate the emission line fluxes
-        line_mags = observate.getSED(
-            results['PRISM_wavelength'] * 10000,
-            line_fluxes * 1e-20,
-            filterlist=filters,
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
 
-        # Calculate delta
-        dm = -2.5 * np.log10(1 - 10 ** (-0.4 * (line_mags - prism_mags)))
+            # Now calculate the emission line fluxes
+            prism_lines = observate.getSED(
+                results['PRISM_wavelength'] * 10000,
+                line_fluxes * 1e-20,
+                filterlist=filters,
+                linear_flux=True,
+            )
+
+            # Get the subtracted flux
+            prism_noline = prism_total - prism_lines
+
+            # Calculate delta
+            dm = -2.5 * np.log10(prism_noline / prism_total) 
 
         # Compute medians
         med = np.median(dm, axis=0)
@@ -94,7 +103,7 @@ for (root, srcid), data in tqdm(rubies.groupby(['root', 'srcid'])):
 
     out['srcid'].append(srcid)
     out['root'].append(root)
-    out['mags'].append(Table(prism_mags, names=fnames))
+    out['mags'].append(Table(prism_total, names=fnames))
 
 
 # Construct the total output
