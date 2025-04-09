@@ -14,6 +14,33 @@ dja['grating'] = dja['grating'].astype('string')
 # Consistent srcids
 dja['srcid'] = dja.groupby(['mask', 'uid'])['srcid'].transform('max')
 
+# Fix specific srcids
+remap = [
+    (65077, 65078),  # v3 vs nod-v3
+    (146412, 930581),  # v3 vs nod-v3
+    (162168, 983090),  # v3 vs nod-v3
+    (164279, 980032),  # v3 vs nod-v3
+    (10576, 10577),  # v3 vs v4
+    (26388, 26389),  # v3 vs v4
+    (29954, 834181),  # v3 vs v4
+    (31061, 31062),  # v3 vs v4
+    (34219, 839123),  # v3 vs v4
+    (37427, 842741),  # v3 vs v4
+    (38060, 843430),  # v3 vs v4
+    (45849, 45921),  # v3 vs v4
+    (46135, 46136),  # v3 vs v4
+    (46141, 46199),  # v3 vs v4
+    (75619, 75709),  # v3 vs v4
+    (151027, 947582),  # v3 vs v4
+    (154267, 943340),  # v3 vs v4
+    (165166, 978699),  # v3 vs v4
+    (169961, 972343),  # v3 vs v4
+    (819800, 819846),  # v3 vs v4
+    (926480, 926642),  # v3 vs v4
+]
+for old, new in remap:
+    dja.loc[dja['srcid'] == old, 'srcid'] = new
+
 # Sort by grade and reduction
 dja.sort_values(
     by=['mask', 'srcid', 'grating', 'grade', 'reduction'],
@@ -152,11 +179,12 @@ bonus = pd.DataFrame(
         'mask': [b'uds33', b'uds33'],
         'reduction': [b'v4', b'v4'],
         'root': [b'rubies-uds33-v4', b'rubies-uds33-v4'],
-        'srcid': [50432, 50432],
+        'srcid': [57040, 57040],
         'grating': ['G395M', 'PRISM'],
         'grade': [3, 3],
         'zfit': [6.423, 6.423],
         'z': [6.423, 6.423],
+        'best_z': [6.423, 6.423],
         'comment': [b'bonus LRD', b'bonus LRD'],
     }
 )
@@ -168,7 +196,6 @@ rubies = pd.concat([new_v3[cols], rubies_v4[cols], bonus], ignore_index=True)
 rubies = rubies.merge(
     best_z.rename('best_z'), left_on=['mask', 'srcid'], right_index=True, how='left'
 )
-rubies['best_z'] = rubies['best_z'].fillna(6.423)
 
 # Save
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)

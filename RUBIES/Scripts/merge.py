@@ -65,10 +65,11 @@ results = pd.DataFrame(expanded_cols)
 results.sort_values(
     ['PBroad', 'root', 'srcid'], ascending=[False, True, True], inplace=True
 )
+results['root'] = results['root'].astype(str)
 results['root-1'] = results['root-1'].astype(str)
+results['root-2'] = results['root-2'].astype(str)
 Table.from_pandas(results).write('fitting-results.fits', overwrite=True)
 
-results['root'] = results['root'].astype(str)
 # results['root'] = results['root'].apply(lambda x: x.replace('v4','nod-v4'))
 
 # Limit to FWHM > 1000 
