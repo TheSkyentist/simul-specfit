@@ -22,10 +22,8 @@ remap = [
     (164279, 980032),  # v3 vs nod-v3
     (10576, 10577),  # v3 vs v4
     (26388, 26389),  # v3 vs v4
-    (29954, 834181),  # v3 vs v4
     (31061, 31062),  # v3 vs v4
     (34219, 839123),  # v3 vs v4
-    (37427, 842741),  # v3 vs v4
     (38060, 843430),  # v3 vs v4
     (45849, 45921),  # v3 vs v4
     (46135, 46136),  # v3 vs v4
@@ -37,6 +35,10 @@ remap = [
     (169961, 972343),  # v3 vs v4
     (819800, 819846),  # v3 vs v4
     (926480, 926642),  # v3 vs v4
+    (834181, 29954),  # Keep as v3 for phot
+    (842741, 37427),  # Keep as v3 for phot
+    (819846, 819800),  # Keep as v3 for phot
+
 ]
 for old, new in remap:
     dja.loc[dja['srcid'] == old, 'srcid'] = new
@@ -76,7 +78,7 @@ def get_best_redshift(group):
 best_redshifts = (
     dja.groupby(['mask', 'srcid'])
     .apply(get_best_redshift, include_groups=False)
-    .reset_index(drop=True)
+    .reset_index()
 )
 
 # Compute best redshift for each object
@@ -166,6 +168,14 @@ cols = [
     c for c in dja_v4.columns if c in np.intersect1d(rubies_v4.columns, new_v3.columns)
 ]
 
+# Concat
+rubies = pd.concat([new_v3[cols], rubies_v4[cols]], ignore_index=True)
+
+# Add in best redshifts
+rubies = rubies.merge(
+    best_z.rename('best_z'), left_on=['mask', 'srcid'], right_index=True, how='left'
+)
+
 # Add bonus LRD
 bonus = pd.DataFrame(
     {
@@ -188,14 +198,7 @@ bonus = pd.DataFrame(
         'comment': [b'bonus LRD', b'bonus LRD'],
     }
 )
-
-# Concat
-rubies = pd.concat([new_v3[cols], rubies_v4[cols], bonus], ignore_index=True)
-
-# Add in best redshifts
-rubies = rubies.merge(
-    best_z.rename('best_z'), left_on=['mask', 'srcid'], right_index=True, how='left'
-)
+rubies = pd.concat([rubies, bonus], ignore_index=True)
 
 # Save
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)

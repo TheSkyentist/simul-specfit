@@ -26,7 +26,7 @@ env = {"JAX_ENABLE_X64" = "1", "JAX_LOGGING_LEVEL" = "ERROR"}
 [tool.pixi.dependencies]
 cmake = ">=4.0.0,<5"
 python = ">=3.12,<3.14"
-ipython = ">=9.0.2,<10"
+ipython = ">=9.1.0,<10"
 graphviz = ">=12.2.1,<13"
 numpy = ">=2.2.4,<3"
 bs4 = ">=4.13.3,<5"
