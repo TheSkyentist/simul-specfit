@@ -10,7 +10,10 @@ import json
 import argparse
 import multiprocessing as mp
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+# Progress bar
+import tqdm
 
 # Numpy packages
 import numpy as np
@@ -71,15 +74,15 @@ def main():
 
     # Multiprocess
     with ProcessPoolExecutor(max_workers=args.ncpu, mp_context=ctx) as executor:
-        for rows in allrows:
-            executor.submit(partial_process, rows)
-        # executor.map(partial_process, allrows)
+        submissions = [executor.submit(partial_process, rows) for rows in allrows]
+        for _ in tqdm.tqdm(as_completed(submissions), total=len(submissions)):
+            pass  # We don't care about the result
 
 
 def process(rows, config):
     # Get MCMC
     try:
-        RubiesFit(config, rows)
+        RubiesFit(config, rows, verbose=False)
     except Exception as e:
         print(rows[0]['root', 'srcid'], e)
 

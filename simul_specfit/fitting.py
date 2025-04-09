@@ -32,7 +32,7 @@ from simul_specfit.spectra import RubiesSpectra
 from simul_specfit import utils, initial, parameters
 
 
-def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
+def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC', verbose=True) -> None:
     # Get the model arguments
     config, model_args = RUBIESModelArgs(config, rows)
 
@@ -42,7 +42,7 @@ def RubiesFit(config: dict, rows: Table, backend: str = 'MCMC') -> None:
     # Fit the data
     match backend:
         case 'MCMC':
-            samples, extras = MCMCFit(model_args, rng_key)
+            samples, extras = MCMCFit(model_args, rng_key, verbose=verbose)
         case 'NS':
             samples, extras = NSFit(model_args, rng_key)
         case 'MAP':
@@ -116,7 +116,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> Tuple:
 
 
 def MCMCFit(
-    model_args: tuple, rng_key: random.PRNGKey, N: int = 500
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 500, verbose=True
 ) -> Tuple[Dict, Dict]:
     """
     Fit the RUBIES data with MCMC.
@@ -125,6 +125,12 @@ def MCMCFit(
     ----------
     model_args : tuple
         Model Arguements
+    rng_key : random.PRNGKey
+        JAX random key
+    N : int, optional
+        Number of samples, by default 500
+    verbose : bool, optional
+        Verbose, by default True
 
     Returns
     -------
@@ -134,7 +140,7 @@ def MCMCFit(
 
     # MCMC
     kernel = infer.NUTS(multiSpecModel)
-    mcmc = infer.MCMC(kernel, num_samples=N, num_warmup=250)
+    mcmc = infer.MCMC(kernel, num_samples=N, num_warmup=250, progress_bar=verbose)
     mcmc.run(rng_key, *model_args)
 
     # Get the samples
