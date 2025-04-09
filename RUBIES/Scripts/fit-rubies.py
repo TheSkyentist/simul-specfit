@@ -9,6 +9,8 @@ import os
 import json
 import argparse
 import multiprocessing as mp
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
 
 # Numpy packages
 import numpy as np
@@ -18,8 +20,9 @@ from astropy.table import Table
 
 from simul_specfit.fitting import RubiesFit
 
-# Spawn for Linux sever
-mp.set_start_method('spawn', force=True)
+# Use safer (but slower) spawn method for multiprocessing
+# Necessary for stability on Linux, already the default on macOS
+ctx = mp.get_context('spawn')
 
 
 def main():
@@ -63,11 +66,14 @@ def main():
         goodrows = targets[good]
         allrows.append(goodrows)
 
+    # Create partial function
+    partial_process = partial(process, config=config)
+
     # Multiprocess
-    with mp.Pool(args.ncpu) as pool:
-        pool.starmap(process, [(rows, config) for rows in allrows])
-        pool.close()
-        pool.join()
+    with ProcessPoolExecutor(max_workers=args.ncpu, mp_context=ctx) as executor:
+        for rows in allrows:
+            executor.submit(partial_process, rows)
+        # executor.map(partial_process, allrows)
 
 
 def process(rows, config):
