@@ -39,7 +39,7 @@ def restrictConfig(
         Updated configuration
     """
 
-    # Set the default line type as narrow
+    # Set the default linetype as narrow
     for group in config['Groups'].values():
         for species in group['Species']:
             if 'LineType' not in species:

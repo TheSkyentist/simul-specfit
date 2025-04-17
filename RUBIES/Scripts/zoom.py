@@ -221,9 +221,9 @@ def plot(row):
 
     # Save figure
     try:
-        fig.savefig(f'RUBIES/Comparison-PDF/{root}-{srcid}_comparison.pdf')
+        fig.savefig(f'RUBIES/Comparison-PDF/{root}-{srcid}_zoom.pdf')
         fig.savefig(
-            f'RUBIES/Comparison-JPG/{root}-{srcid}_comparison.jpg', dpi=150
+            f'RUBIES/Comparison-JPG/{root}-{srcid}_zoom.jpg', dpi=150
         )
     except Exception:
         print(srcid)

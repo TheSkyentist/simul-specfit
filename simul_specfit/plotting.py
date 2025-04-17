@@ -86,7 +86,7 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
                     wave[mask],
                     model[k][mask],
                     color='#E20134',
-                    alpha=min(1, 5 / len(model)),
+                    alpha=np.clip(5 / len(model),0.01,1),
                     ds='steps-mid',
                 )
 

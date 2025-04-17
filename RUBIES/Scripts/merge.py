@@ -15,9 +15,13 @@ results = join(narrow, broad, keys=['root', 'srcid'], table_names=('narrow', 'br
 with_cauchy = join(results, cauchy, keys=['root', 'srcid'], table_names=('', 'cauchy'))
 
 # Compute the probabilities
-results['PBroad'] = 1 / (1 + np.exp(results['WAIC_broad'] - results['WAIC_narrow']))
+results['PBroad'] = 1 / (
+    1 + np.exp((results['WAIC_broad'] - results['WAIC_narrow']) / 2)
+)
 results['sigma'] = norm.ppf((results['PBroad'] + 1) / 2)
-results['PCauchy'] = 1 / (1 + np.exp(with_cauchy['WAIC'] - with_cauchy['WAIC_broad']))
+results['PCauchy'] = 1 / (
+    1 + np.exp((with_cauchy['WAIC'] - with_cauchy['WAIC_broad']) / 2)
+)
 
 # Sort by field, uid, Pbroad
 results = results.to_pandas().sort_values(
@@ -67,22 +71,24 @@ results.sort_values(
 )
 results['root'] = results['root'].astype(str)
 results['root-1'] = results['root-1'].astype(str)
-results['root-2'] = results['root-2'].astype(str)
+# results['root-2'] = results['root-2'].astype(str)
 Table.from_pandas(results).write('fitting-results.fits', overwrite=True)
 
 # results['root'] = results['root'].apply(lambda x: x.replace('v4','nod-v4'))
 
-# Limit to FWHM > 1000 
-results['fwhm_snr'] = results['HI_broad_6564.61_fwhm'] / results['HI_broad_6564.61_fwhm_std']
+# Limit to FWHM > 1000
+results['fwhm_snr'] = (
+    results['HI_broad_6564.61_fwhm'] / results['HI_broad_6564.61_fwhm_std']
+)
 
 # Add in old Grades
-grades = pd.read_csv(
-    '/Users/hviding/Projects/LRD-Selection/data/Grading - Final.csv'
-)
-grades = grades[['srcid','field','REH','AdG','JEG','Old Comments','New Comments','final']]
+grades = pd.read_csv('/Users/hviding/Projects/LRD-Selection/data/Grading - Final.csv')
+grades = grades[
+    ['srcid', 'field', 'REH', 'AdG', 'JEG', 'Old Comments', 'New Comments', 'final']
+]
 
 # Merge with grades
-results = results.merge(grades, how='left', on=['srcid','field'])
+results = results.merge(grades, how='left', on=['srcid', 'field'])
 
 # Save to summary
 summary = results[
