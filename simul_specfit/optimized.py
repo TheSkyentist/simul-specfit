@@ -311,3 +311,26 @@ def linearContinua(
         continuum,
         0.0,
     )
+
+
+@jit
+def powerLawContinuum(λ: jnp.ndarray, a: jnp.float64, β: jnp.float64) -> jnp.ndarray:
+    """
+    Compute the power law continuum
+
+    Parameters
+    ----------
+    λ : jnp.ndarray
+        Wavelength values
+    a : jnp.float64
+        Amplitude of the power law
+    β : jnp.float64
+        Power law index
+
+    Returns
+    -------
+    jnp.ndarray
+        Flux values
+    """
+
+    return a * (λ**β)

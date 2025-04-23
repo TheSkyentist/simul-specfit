@@ -117,21 +117,26 @@ def multiSpecModel(
     fwhms = centers * determ('fwhm_all', params['fwhm']) / C
 
     # Plate over the continua
-    Nc = len(cont_regs)  # Number of continuum regions
-    with plate(f'Nc = {Nc}', Nc):
-        # Continuum centers
-        cont_centers = determ('cont_center', cont_regs.mean(axis=1))
+    # Nc = len(cont_regs)  # Number of continuum regions
+    # with plate(f'Nc = {Nc}', Nc):
+    #     # Continuum centers
+    #     cont_centers = determ('cont_center', cont_regs.mean(axis=1))
 
-        # Continuum angles
-        angles = sample('cont_angle', priors.angle_prior())
+    #     # Continuum angles
+    #     angles = sample('cont_angle', priors.angle_prior())
 
-        # Continuum offsets
-        offsets = sample('cont_offset', priors.height_prior(cont_guesses))
+    #     # Continuum offsets
+    #     offsets = sample('cont_offset', priors.height_prior(cont_guesses))
+    a = sample('cont_amp',dist.Uniform(0,3))
+    β = sample('cont_beta',dist.Uniform(-4,0))
 
     # Compute equivalent widths
-    linecont = optimized.linearContinua(
-        centers, cont_centers, angles, offsets, cont_regs
-    ).sum(1)
+    linecont = optimized.powerLawContinuum(
+        centers, a, β
+    )
+    # linecont = optimized.linearContinua(
+    #     centers, cont_centers, angles, offsets, cont_regs
+    # ).sum(1)
     determ('ew_all', fluxes / (linecont * oneplusz))
 
     # Loop over spectra
@@ -167,10 +172,14 @@ def multiSpecModel(
         # Compute continuum
         continuum = determ(
             f'{spectrum.name}_cont',
-            optimized.linearContinua(
-                wave, cont_centers, angles, offsets, cont_regs_shift
-            ).sum(1),
+            optimized.powerLawContinuum(wave, a, β),
         )
+        # continuum = determ(
+        #     f'{spectrum.name}_cont',
+        #     optimized.linearContinua(
+        #         wave, cont_centers, angles, offsets, cont_regs_shift
+        #     ).sum(1),
+        # )
 
         # Compute model
         model = determ(
