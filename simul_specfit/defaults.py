@@ -32,7 +32,7 @@ flux: Final[dict[str, tuple[float]]] = {
 
 
 # Define the Redshift priors in dimensionless units
-δz: Final[float] = 0.005
+δz: Final[float] = 0.5
 redshift: Final[dict[str, tuple[float]]] = {
     'narrow': (-δz, δz),
     'broad': (-2 * δz, 2 * δz),
@@ -44,11 +44,11 @@ redshift: Final[dict[str, tuple[float]]] = {
 
 # Define the Dispersion priors in km/s
 fwhm: Final[dict[str, tuple[float]]] = {
-    'narrow': (0, 750),
+    'narrow': (0, 500),
     'broad': (250, 2500),
     'cauchy': (250, 2500),
     'absorption': (0, 1000),
-    'emission': (0, 1000),
+    'emission': (0, 500),
     'outflow': (150, 2500),
 }
 

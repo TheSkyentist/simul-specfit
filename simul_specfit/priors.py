@@ -53,8 +53,8 @@ def fwhm_prior(
             orig + 100,
             low,
         )
-
-    return dist.Uniform(low=low, high=high)
+    return dist.LogNormal(jnp.log(high),0.5)
+    # return dist.Uniform(low=low, high=high)
 
 
 def redshift_prior(
