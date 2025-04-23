@@ -62,7 +62,7 @@ for col in ['root', 'file']:
 
 
 # Only keep those with at least one grade 3
-dja = dja.groupby(['mask', 'srcid']).filter(lambda x: (x['grade'] == 3).any())
+dja = dja.groupby(['mask', 'srcid']).filter(lambda x: ((x['grade'] == 3) | (x['srcid'] == 37362)).any())
 
 
 # Function to get the best redshift
@@ -142,6 +142,9 @@ v4 = v4[~v4['file'].str.contains('bkg')]
 
 # Merge
 rubies_v4 = dja_v4[['srcid', 'mask']].drop_duplicates().merge(v4, how='inner')
+
+# Add in 60935
+rubies_v4 = pd.concat([rubies_v4, v4[v4['srcid'] == 60935]], ignore_index=True)
 
 # Keep v3 grades unless v4 is better
 for i, row in rubies_v4.iterrows():

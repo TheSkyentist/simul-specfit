@@ -90,6 +90,17 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
                     ds='steps-mid',
                 )
 
+            # Plot the best logP model
+            m = model[samples['logP'].argmax()]
+            ax.plot(
+                wave[mask],
+                m[mask],
+                color='#A40122',
+                alpha=1,
+                lw=2,
+                ds='steps-mid',
+            )
+
             # Label the axes
             if j == 0:
                 ax.set(ylabel=f'{spectrum.name}')

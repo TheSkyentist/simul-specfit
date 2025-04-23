@@ -67,7 +67,7 @@ for o in out[out['reduction'] == 'v4']:
     srcid = o['srcid']
 
     # Skip bonus LRD
-    if srcid == 57040:
+    if (srcid == 57040) or (srcid == 60935):
         continue
 
     if srcid == 902297:

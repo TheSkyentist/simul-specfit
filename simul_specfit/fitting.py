@@ -116,7 +116,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> Tuple:
 
 
 def MCMCFit(
-    model_args: tuple, rng_key: random.PRNGKey, N: int = 500, verbose=True
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 2500, verbose=True
 ) -> Tuple[Dict, Dict]:
     """
     Fit the RUBIES data with MCMC.
