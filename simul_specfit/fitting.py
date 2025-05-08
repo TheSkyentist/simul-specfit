@@ -19,7 +19,6 @@ from astropy.table import Table, hstack
 # Numpyro
 from numpyro import infer, optim
 from numpyro.handlers import trace, seed, substitute
-from numpyro.contrib.nested_sampling import NestedSampler
 
 # JAX
 import numpy as np
@@ -116,7 +115,7 @@ def RUBIESModelArgs(config: dict, rows: Table) -> Tuple:
 
 
 def MCMCFit(
-    model_args: tuple, rng_key: random.PRNGKey, N: int = 2500, verbose=True
+    model_args: tuple, rng_key: random.PRNGKey, N: int = 500, verbose=True
 ) -> Tuple[Dict, Dict]:
     """
     Fit the RUBIES data with MCMC.
@@ -172,6 +171,8 @@ def NSFit(
     -------
     NestedSampler
     """
+
+    from numpyro.contrib.nested_sampling import NestedSampler
 
     # Get number of variables
     with trace() as tr:

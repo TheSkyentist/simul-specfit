@@ -203,5 +203,8 @@ bonus = pd.DataFrame(
 )
 rubies = pd.concat([rubies, bonus], ignore_index=True)
 
+# Fix 60935 redshift 
+rubies.loc[rubies['srcid'] == 60935,'best_z'] = 5.2871
+
 # Save
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)
