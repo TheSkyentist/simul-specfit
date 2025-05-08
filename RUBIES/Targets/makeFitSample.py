@@ -38,7 +38,6 @@ remap = [
     (834181, 29954),  # Keep as v3 for phot
     (842741, 37427),  # Keep as v3 for phot
     (819846, 819800),  # Keep as v3 for phot
-
 ]
 for old, new in remap:
     dja.loc[dja['srcid'] == old, 'srcid'] = new
@@ -62,7 +61,13 @@ for col in ['root', 'file']:
 
 
 # Only keep those with at least one grade 3
-dja = dja.groupby(['mask', 'srcid']).filter(lambda x: (x['grade'] == 3).any())
+dja = dja.groupby(['mask', 'srcid']).filter(
+    lambda x: ((x['grade'] == 3) | (x['srcid'] == 37362)).any()
+)
+
+# Fix redshift
+dja.loc[dja['srcid'] == 149298, ['z', 'zfit']] = 5.151
+dja.loc[dja['srcid'] == 167741, ['z', 'zfit']] = 4.1157
 
 
 # Function to get the best redshift
@@ -126,6 +131,10 @@ new_v3.sort_values(
 )
 new_v3.drop_duplicates(subset=['mask', 'srcid', 'grating'], keep='first', inplace=True)
 
+# Fix redshift here again?
+new_v3.loc[new_v3['srcid'] == 167741, ['z', 'zfit']] = 4.1157
+
+
 # Use v4 for extended redshift range
 dja_v4 = dja[dja.set_index(['mask', 'srcid']).index.isin(best_z[use_v4].index)]
 
@@ -142,6 +151,9 @@ v4 = v4[~v4['file'].str.contains('bkg')]
 
 # Merge
 rubies_v4 = dja_v4[['srcid', 'mask']].drop_duplicates().merge(v4, how='inner')
+
+# Add in 60935
+rubies_v4 = pd.concat([rubies_v4, v4[v4['srcid'] == 60935]], ignore_index=True)
 
 # Keep v3 grades unless v4 is better
 for i, row in rubies_v4.iterrows():
@@ -199,6 +211,9 @@ bonus = pd.DataFrame(
     }
 )
 rubies = pd.concat([rubies, bonus], ignore_index=True)
+
+# Fix 60935 redshift
+rubies.loc[rubies['srcid'] == 60935, 'best_z'] = 5.2871
 
 # Save
 Table.from_pandas(rubies).write('rubies.fits', overwrite=True)

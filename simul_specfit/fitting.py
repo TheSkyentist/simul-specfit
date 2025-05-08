@@ -19,7 +19,6 @@ from astropy.table import Table, hstack
 # Numpyro
 from numpyro import infer, optim
 from numpyro.handlers import trace, seed, substitute
-from numpyro.contrib.nested_sampling import NestedSampler
 
 # JAX
 import numpy as np
@@ -172,6 +171,8 @@ def NSFit(
     -------
     NestedSampler
     """
+
+    from numpyro.contrib.nested_sampling import NestedSampler
 
     # Get number of variables
     with trace() as tr:

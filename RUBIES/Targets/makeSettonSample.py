@@ -67,7 +67,7 @@ for o in out[out['reduction'] == 'v4']:
     srcid = o['srcid']
 
     # Skip bonus LRD
-    if srcid == 57040:
+    if (srcid == 57040) or (srcid == 60935):
         continue
 
     if srcid == 902297:
@@ -85,7 +85,7 @@ for o in out[out['reduction'] == 'v4']:
         print(f'No match for {srcid} in v3')
         # continue
 
-    out['file'][out['srcid'] == srcid] = matched['file']
+    out['file'][(out['srcid'] == srcid) & (out['mask'] == o['mask'])] = matched['file']
 
 # Filter names
 fs = sorted(
