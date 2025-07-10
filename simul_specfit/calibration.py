@@ -76,20 +76,22 @@ def InterpLSFCurve(lsf_file: str, λ_unit: u.Unit) -> Callable:
     None
     """
 
-    # Load the lsf from file
-    lsf_tab = Table.read(lsf_file)
+    # Load the polynomial coefficients from file
+    res_tab = Table.read(lsf_file)
+    res_unit = u.Unit(res_tab.meta['LAMUNIT'])
 
-    # Convert to JAX arrays in the correct units
-    wave = jnp.array((lsf_tab['wave']).to(λ_unit))
-    fwhm = jnp.array((lsf_tab['sigma']).to(λ_unit)) * SIGMA_TO_FWHM
+    # Compute the conversion
+    conversion = λ_unit.to(res_unit)
 
-    # Compute Interpolated lsf Curve
+    # Convert to JAX arrays
+    coeffs = jnp.array(res_tab['coeff'])  # Assumes polyval order
+
+
+    # Compute Polynomial Resolution Curve
+    # LSF FWHM in wavelength units
     @jit
     def lsf(λ, scale):
-        lsf_interp = scale * jnp.interp(
-            λ, wave, fwhm, left='extrapolate', right='extrapolate'
-        )
-        return lsf_interp
+        return scale * (λ / jnp.polyval(coeffs, λ * conversion))
 
     return lsf
 

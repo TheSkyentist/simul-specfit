@@ -172,7 +172,7 @@ class RubiesSpectra(Spectra):
         # Get best initial redshift
         bestrow = rows[rows['grade'] == np.max(rows['grade'])]
         if len(bestrow) > 1:
-            bestrow = bestrow[bestrow['grating'] == 'G395M']
+            bestrow = bestrow[bestrow['grating'] == 'G395H']
 
         # If z isn't -1 else use fitz
         if bestrow['z'] == -1:
@@ -187,7 +187,7 @@ class RubiesSpectra(Spectra):
         if len(spectrum_files) == 1:
             fixed = [True]
         else:
-            fixed = [False if 'PRISM' in row['grating'] else True for row in rows]
+            fixed = [True if 'PRISM' in row['grating'] else False for row in rows]
         self.fixed = fixed
 
         # Load the spectra
@@ -534,11 +534,11 @@ class RubiesSpectrum(Spectrum):
 
         # Compute resolution
         lsf_dir = resources.files('simul_specfit.data.resolution')
-        lsf_file = f'jwst_nirspec_{disperser.lower()}_lsf.fits'
+        lsf_file = f'jwst_nirspec_{disperser.lower()}_resolution.fits'
         self.lsf = calibration.InterpLSFCurve(lsf_dir.joinpath(lsf_file), λ_unit)
 
         # Compute pixel offset
-        disp_dir = resources.files('simul_specfit.data.resolution')
+        disp_dir = resources.files('simul_specfit.data.disp')
         disp_file = f'jwst_nirspec_{disperser.lower()}_disp.fits'
         self.offset = calibration.PixelOffset(disp_dir.joinpath(disp_file), λ_unit)
 
