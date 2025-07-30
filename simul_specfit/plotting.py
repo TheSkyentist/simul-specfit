@@ -72,12 +72,13 @@ def plotResults(config: list, rows: Table, model_args: tuple, samples: dict) -> 
             # Get the continuum region
             cont_reg = cont_regs[j]
             mask = jnp.logical_and(wave > cont_reg[0], wave < cont_reg[1])
+            mask = jnp.logical_and(mask, flux < 1000)
+
+            # Plot errorbars on the spectrum
+            ax.errorbar(wave[mask], flux[mask], yerr=err[mask], fmt='none', color='gray')
 
             # Plot the spectrum
             ax.plot(wave[mask], flux[mask], color='k', ds='steps-mid')
-
-            # Plot errorbars on the spectrum
-            ax.errorbar(wave[mask], flux[mask], yerr=err[mask], fmt='none', color='k')
 
             # Plot the models
             model = samples[f'{spectrum.name}_model']
